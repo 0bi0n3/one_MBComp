@@ -17,9 +17,9 @@ private:
     BasicCompressor compressor;
     
 public:
-    juce::AudioParameterFloat* attack = nullptr;
-    juce::AudioParameterFloat* release = nullptr;
-    juce::AudioParameterFloat* threshold = nullptr;
+    juce::AudioParameterFloat* attackTime = nullptr;
+    juce::AudioParameterFloat* releaseTime = nullptr;
+    juce::AudioParameterFloat* thresholdLevel = nullptr;
     juce::AudioParameterChoice* ratio = nullptr;
     juce::AudioParameterBool* bypassed = nullptr;
     
@@ -28,18 +28,18 @@ public:
         compressor.prepare(spec);
     }
     
-    void updateCompressorSettings()
+    void updateCompressorParamSettings()
     {
-        compressor.setAttackTime( attack->get() );
-        compressor.setReleaseTime( release->get() );
-        compressor.setThreshold( threshold->get() );
+        compressor.setAttackTime( attackTime->get() );
+        compressor.setReleaseTime( releaseTime->get() );
+        compressor.setThresholdLevel( thresholdLevel->get() );
         compressor.setRatio( ratio->getCurrentChoiceName().getFloatValue() );
     }
     
     void process(juce::AudioBuffer<float>& buffer)
     {
-        auto block = juce::dsp::AudioBlock<float>(buffer);
-        auto context = juce::dsp::ProcessContextReplacing<float>(block);
+        auto sampleBlock = juce::dsp::AudioBlock<float>(buffer);
+        auto context = juce::dsp::ProcessContextReplacing<float>(sampleBlock);
         
         context.isBypassed = bypassed->get();
             
@@ -97,14 +97,8 @@ public:
     APVTS apvts { *this, nullptr, "Parameters", createParameterLayout() };
 
 private:
-//    juce::dsp::Compressor<float> compressor;
-//
-//    juce::AudioParameterFloat* attack = nullptr;
-//    juce::AudioParameterFloat* release = nullptr;
-//    juce::AudioParameterFloat* threshold = nullptr;
-//    juce::AudioParameterChoice* ratio = nullptr;
-//    juce::AudioParameterBool* bypassed = nullptr;
     CompressorBand compressor;
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessor)
 };

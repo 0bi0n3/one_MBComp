@@ -16,7 +16,7 @@ void BasicCompressor::prepare( const juce::dsp::ProcessSpec& spec )
     alphaRelease = std::exp(-1.0f / (tauRelease_ * spec.sampleRate / 1000.0f));
 }
 
-void BasicCompressor::setThreshold(float newThreshold)
+void BasicCompressor::setThresholdLevel(float newThreshold)
 {
     threshold_ = newThreshold;
 }

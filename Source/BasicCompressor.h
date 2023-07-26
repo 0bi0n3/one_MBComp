@@ -31,7 +31,7 @@ public:
     void process(juce::dsp::ProcessContextReplacing<float>& context);
     void setAttackTime(float newAttackTime);
     void setReleaseTime(float newReleaseTime);
-    void setThreshold(float newThreshold);
+    void setThresholdLevel(float newThreshold);
     void setRatio(float newRatio);
     void setMakeUpGain(float newMakeUpGain);
 

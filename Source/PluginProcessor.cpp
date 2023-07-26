@@ -23,14 +23,14 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
                        )
 #endif
 {
-    compressor.attack = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
-    jassert( compressor.attack != nullptr );
+    compressor.attackTime = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
+    jassert( compressor.attackTime != nullptr );
     
-    compressor.release = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
-    jassert( compressor.release != nullptr );
+    compressor.releaseTime = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
+    jassert( compressor.releaseTime != nullptr );
     
-    compressor.threshold = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
-    jassert( compressor.threshold != nullptr );
+    compressor.thresholdLevel = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
+    jassert( compressor.thresholdLevel != nullptr );
     
     compressor.ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
     jassert( compressor.ratio != nullptr );
@@ -178,7 +178,7 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 //
 //    compressor.process(context);
     
-    compressor.updateCompressorSettings();
+    compressor.updateCompressorParamSettings();
     compressor.process(buffer);
 }
 
@@ -217,23 +217,23 @@ void One_MBCompAudioProcessor::setStateInformation (const void* data, int sizeIn
 
 juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::createParameterLayout()
 {
-    APVTS::ParameterLayout layout;
+    APVTS::ParameterLayout PluginGUIlayout;
     
     using namespace juce;
     
-    layout.add(std::make_unique<AudioParameterFloat>("Threshold",
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Threshold",
                                                      "Threshold",
                                                      NormalisableRange<float>(-60, 12, 1, 1),
                                                      0));
     
     auto attkRelRange = NormalisableRange<float>(5, 500, 1, 1);
     
-    layout.add(std::make_unique<AudioParameterFloat>("Attack",
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Attack",
                                                      "Attack",
                                                      attkRelRange,
                                                      50));
     
-    layout.add(std::make_unique<AudioParameterFloat>("Release",
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Release",
                                                      "Release",
                                                      attkRelRange,
                                                      250));
@@ -245,11 +245,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
         strArr.add( juce::String(rChoice, 1) );
     }
     
-    layout.add(std::make_unique<AudioParameterChoice>("Ratio", "Ratio", strArr, 3));
+    PluginGUIlayout.add(std::make_unique<AudioParameterChoice>("Ratio", "Ratio", strArr, 3));
     
-    layout.add(std::make_unique<AudioParameterBool>("Bypassed", "Bypassed", false));
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>("Bypassed", "Bypassed", false));
      
-    return layout;
+    return PluginGUIlayout;
 }
 
 //==============================================================================
