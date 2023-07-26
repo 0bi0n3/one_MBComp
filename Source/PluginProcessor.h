@@ -14,7 +14,7 @@
 struct CompressorBand
 {
 private:
-    juce::dsp::Compressor<float> compressor;
+    BasicCompressor compressor;
     
 public:
     juce::AudioParameterFloat* attack = nullptr;
@@ -30,8 +30,8 @@ public:
     
     void updateCompressorSettings()
     {
-        compressor.setAttack( attack->get() );
-        compressor.setRelease( release->get() );
+        compressor.setAttackTime( attack->get() );
+        compressor.setReleaseTime( release->get() );
         compressor.setThreshold( threshold->get() );
         compressor.setRatio( ratio->getCurrentChoiceName().getFloatValue() );
     }

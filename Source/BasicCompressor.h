@@ -23,10 +23,18 @@ private:
 
     float alphaAttack;
     float alphaRelease;
+    
+    juce::dsp::ProcessSpec spec_;
 
 public:
-    void prepare(double sampleRate);
-    void process(juce::AudioBuffer<float>& buffer);
+    void prepare(const juce::dsp::ProcessSpec& spec);
+    void process(juce::dsp::ProcessContextReplacing<float>& context);
+    void setAttackTime(float newAttackTime);
+    void setReleaseTime(float newReleaseTime);
+    void setThreshold(float newThreshold);
+    void setRatio(float newRatio);
+    void setMakeUpGain(float newMakeUpGain);
+
 };
 
 

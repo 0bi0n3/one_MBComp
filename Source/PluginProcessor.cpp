@@ -177,6 +177,7 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 //    context.isBypassed = bypassed->get();
 //
 //    compressor.process(context);
+    
     compressor.updateCompressorSettings();
     compressor.process(buffer);
 }
