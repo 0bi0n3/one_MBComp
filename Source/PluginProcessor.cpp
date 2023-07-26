@@ -95,6 +95,13 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = getTotalNumOutputChannels();
+    spec.sampleRate = sampleRate;
+    
+    compressor.prepare(spec);
 }
 
 void One_MBCompAudioProcessor::releaseResources()
@@ -143,19 +150,11 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
-    }
+    
+    auto block = juce::dsp::AudioBlock<float>(buffer);
+    auto context = juce::dsp::ProcessContextReplacing<float>(block);
+    
+    compressor.process(context);
 }
 
 //==============================================================================
@@ -176,12 +175,54 @@ void One_MBCompAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    juce::MemoryOutputStream memoryOutputStream(destData, true);
+    apvts.state.writeToStream(memoryOutputStream);
 }
 
 void One_MBCompAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    auto savedTree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if( savedTree.isValid() )
+    {
+        apvts.replaceState(savedTree);
+    }
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::createParameterLayout()
+{
+    APVTS::ParameterLayout layout;
+    
+    using namespace juce;
+    
+    layout.add(std::make_unique<AudioParameterFloat>("Threshold",
+                                                     "Threshold",
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
+    
+    auto attkRelRange = NormalisableRange<float>(5, 500, 1, 1);
+    
+    layout.add(std::make_unique<AudioParameterFloat>("Attack",
+                                                     "Attack",
+                                                     attkRelRange,
+                                                     50));
+    
+    layout.add(std::make_unique<AudioParameterFloat>("Release",
+                                                     "Release",
+                                                     attkRelRange,
+                                                     250));
+    auto ratioChoices = std::vector<double>{ 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10, 15, 20, 50 };
+    
+    juce::StringArray strArr;
+    for( auto rChoice : ratioChoices )
+    {
+        strArr.add( juce::String(rChoice, 1) );
+    }
+    
+    layout.add(std::make_unique<AudioParameterChoice>("Ratio", "Ratio", strArr, 3));
+     
+    return layout;
 }
 
 //==============================================================================
