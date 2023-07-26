@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "BasicCompressor.h"
 
 struct CompressorBand
 {
@@ -41,7 +42,7 @@ public:
         auto context = juce::dsp::ProcessContextReplacing<float>(block);
         
         context.isBypassed = bypassed->get();
-        
+            
         compressor.process(context);
     }
 };

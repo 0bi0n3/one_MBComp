@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BasicCompressor.h"
 
 //==============================================================================
 One_MBCompAudioProcessor::One_MBCompAudioProcessor()
