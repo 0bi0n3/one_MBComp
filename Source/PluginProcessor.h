@@ -11,6 +11,66 @@
 #include <JuceHeader.h>
 #include "BasicCompressor.h"
 
+namespace PluginParameters
+{
+enum ParamNames
+{
+    Low_Mid_XO_Frequency,
+    Mid_High_XO_Frequency,
+    
+    Threshold_LB,
+    Threshold_MB,
+    Threshold_HB,
+    
+    Attack_LB,
+    Attack_MB,
+    Attack_HB,
+    
+    Release_LB,
+    Release_MB,
+    Release_HB,
+    
+    Ratio_LB,
+    Ratio_MB,
+    Ratio_HB,
+    
+    Bypass_LB,
+    Bypass_MB,
+    Bypass_HB,
+};
+
+inline const std::map<ParamNames, juce::String>& GetParameters()
+{
+    static std::map<ParamNames, juce::String> parameters =
+    {
+        { Low_Mid_XO_Frequency, "Low-Mid Crossover Frequency" },
+        { Mid_High_XO_Frequency, "Mid-High Crossover Frequency" },
+        
+        { Threshold_LB, "Low-Band Threshold" },
+        { Threshold_MB, "Mid-Band Threshold" },
+        { Threshold_HB, "High-Band Threshold" },
+        
+        { Attack_LB, "Low-Band Attack" },
+        { Attack_MB, "Mid-Band Attack" },
+        { Attack_HB, "High-Band Attack" },
+    
+        { Release_LB, "Low-Band Release" },
+        { Release_MB, "Mid-Band Release" },
+        { Release_HB, "High-Band Release" },
+    
+        { Ratio_LB, "Low-Band Ratio" },
+        { Ratio_MB, "Mid-Band Ratio" },
+        { Ratio_HB, "High-Band Ratio" },
+    
+        { Bypass_LB, "Low-Band Bypass" },
+        { Bypass_MB, "Mid-Band Bypass" },
+        { Bypass_HB, "High-Band Bypass" },
+    };
+    
+    return parameters;
+}
+}
+
 struct CompressorBand
 {
 private:
