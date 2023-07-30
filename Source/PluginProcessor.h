@@ -96,7 +96,7 @@ public:
         compressor.setAttackTime( attackTime->get() );
         compressor.setReleaseTime( releaseTime->get() );
         compressor.setThresholdLevel( thresholdLevel->get() );
-        compressor.setRatio( ratio->getCurrentChoiceName().getFloatValue() );
+        compressor.setCompressionRatio( ratio->getCurrentChoiceName().getFloatValue() );
     }
     
     void process(juce::AudioBuffer<float>& buffer)

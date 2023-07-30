@@ -15,25 +15,25 @@
 class BasicCompressor
 {
 private:
-    float previousEnvelopeLevel = 0.0f;
-    float threshold_ = -10.0f;
-    float ratio_ = 20.0f;
-    float tauAttack_ = 2000.0f;
-    float tauRelease_ = 6000.0f;
-    float makeUpGain_ = 0.0f;
+    float m_previousEnvelopeLevel = 0.0f;
+    float m_thresholdLevelDb = -10.0f;
+    float m_compressionRatio = 20.0f;
+    float m_attackTimeInMs = 2000.0f;
+    float m_releaseTimeInMs = 6000.0f;
+    float m_newMakeUpGainDb = 0.0f;
 
-    float alphaAttack;
-    float alphaRelease;
+    float m_alphaAttack;
+    float m_alphaRelease;
     
-    juce::dsp::ProcessSpec spec_;
+    juce::dsp::ProcessSpec m_compressorSpecifications;
 
 public:
-    void prepare(const juce::dsp::ProcessSpec& spec);
+    void prepare(const juce::dsp::ProcessSpec& compressorSpec);
     void process(juce::dsp::ProcessContextReplacing<float>& context);
     void setAttackTime(float newAttackTime);
     void setReleaseTime(float newReleaseTime);
     void setThresholdLevel(float newThreshold);
-    void setRatio(float newRatio);
+    void setCompressionRatio(float newCompressionRatio);
     void setMakeUpGain(float newMakeUpGain);
 
 };

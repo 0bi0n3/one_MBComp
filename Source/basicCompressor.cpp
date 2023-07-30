@@ -10,40 +10,56 @@
 #include <JuceHeader.h>
 #include "BasicCompressor.h"
 
-void BasicCompressor::prepare( const juce::dsp::ProcessSpec& spec )
+// This method prepares the compressor with provided specifications
+void BasicCompressor::prepare( const juce::dsp::ProcessSpec& compressorSpec )
 {
-    spec_ = spec;
-    alphaAttack = std::exp(-1.0f / (tauAttack_ * spec.sampleRate / 1000.0f));
-    alphaRelease = std::exp(-1.0f / (tauRelease_ * spec.sampleRate / 1000.0f));
+    // Copy the provided specification to the class's specification member
+    m_compressorSpecifications = compressorSpec;
+
+    // Compute the alpha value for attack phase using provided specifications
+    m_alphaAttack = std::exp(-1.0f / (m_releaseTimeInMs * m_compressorSpecifications.sampleRate / 1000.0f));
+    
+    // Compute the alpha value for release phase using provided specifications
+    m_alphaRelease = std::exp(-1.0f / (m_releaseTimeInMs * m_compressorSpecifications.sampleRate / 1000.0f));
 }
 
-void BasicCompressor::setThresholdLevel(float newThreshold)
+// This method sets the threshold level of the compressor
+void BasicCompressor::setThresholdLevel(float newThresholdLevel)
 {
-    threshold_ = newThreshold;
+    m_thresholdLevelDb = newThresholdLevel;
 }
 
-void BasicCompressor::setRatio(float newRatio)
+// This method sets the compression ratio of the compressor
+void BasicCompressor::setCompressionRatio(float newCompressionRatio)
 {
-    ratio_ = newRatio;
+    m_compressionRatio = newCompressionRatio;
 }
 
-void BasicCompressor::setAttackTime(float newAttackTime)
+// This method sets the attack time of the compressor
+void BasicCompressor::setAttackTime(float newAttackTimeInMs)
 {
-    tauAttack_ = newAttackTime;
-    alphaAttack = std::exp(-1.0f / (tauAttack_ * spec_.sampleRate / 1000.0f));
+    m_attackTimeInMs = newAttackTimeInMs;
+
+    // Compute the new alpha value for attack phase after attack time is updated
+    m_alphaAttack = std::exp(-1.0f / (m_attackTimeInMs * m_compressorSpecifications.sampleRate / 1000.0f));
 }
 
-void BasicCompressor::setReleaseTime(float newReleaseTime)
+// This method sets the release time of the compressor
+void BasicCompressor::setReleaseTime(float newReleaseTimeInMs)
 {
-    tauRelease_ = newReleaseTime;
-    alphaRelease = std::exp(-1.0f / (tauRelease_ * spec_.sampleRate / 1000.0f));
+    m_releaseTimeInMs = newReleaseTimeInMs;
+
+    // Compute the new alpha value for release phase after release time is updated
+    m_alphaRelease = std::exp(-1.0f / (m_releaseTimeInMs * m_compressorSpecifications.sampleRate / 1000.0f));
 }
 
+// This method sets the make-up gain of the compressor
 void BasicCompressor::setMakeUpGain(float newMakeUpGain)
 {
-    makeUpGain_ = newMakeUpGain;
+    m_newMakeUpGainDb = newMakeUpGain;
 }
 
+// Main compressor processing method
 void BasicCompressor::process(juce::dsp::ProcessContextReplacing<float>& context)
 {
     // Get input and output blocks from the context
@@ -83,8 +99,8 @@ void BasicCompressor::process(juce::dsp::ProcessContextReplacing<float>& context
                 
                 // Compute the output level in decibels
                 float outputLevelInDecibels;
-                if (inputLevelInDecibels >= threshold_)
-                    outputLevelInDecibels = threshold_ + (inputLevelInDecibels - threshold_) / ratio_;
+                if (inputLevelInDecibels >= m_thresholdLevelDb)
+                    outputLevelInDecibels = m_thresholdLevelDb + (inputLevelInDecibels - m_thresholdLevelDb) / m_compressionRatio;
                 else
                     outputLevelInDecibels = inputLevelInDecibels;
                 
@@ -93,14 +109,14 @@ void BasicCompressor::process(juce::dsp::ProcessContextReplacing<float>& context
                 
                 // Apply attack or release envelope to the level difference
                 float envelopeLevel;
-                if (levelDifference > previousEnvelopeLevel)
-                    envelopeLevel = alphaAttack * previousEnvelopeLevel + (1.0f - alphaAttack) * levelDifference;
+                if (levelDifference > m_previousEnvelopeLevel)
+                    envelopeLevel = m_alphaAttack * m_previousEnvelopeLevel + (1.0f - m_alphaAttack) * levelDifference;
                 else
-                    envelopeLevel = alphaRelease * previousEnvelopeLevel + (1.0f - alphaRelease) * levelDifference;
+                    envelopeLevel = m_alphaRelease * m_previousEnvelopeLevel + (1.0f - m_alphaRelease) * levelDifference;
                 
                 // Compute the gain to be applied on the sample
-                float gainForSample = std::pow(10.0f, (makeUpGain_ - envelopeLevel) / 20.0f);
-                previousEnvelopeLevel = envelopeLevel;
+                float gainForSample = std::pow(10.0f, (m_newMakeUpGainDb - envelopeLevel) / 20.0f);
+                m_previousEnvelopeLevel = envelopeLevel;
                 
                 // Apply gain to the sample and write it to the output
                 outputChannelData[currentSampleIndex] = currentSample * gainForSample;
