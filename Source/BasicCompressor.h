@@ -2,9 +2,10 @@
 //  BasicCompressor.h
 //  one_MBComp
 //
-//  Created by Oberon Day-West on 26/07/2023.
+//  UWL #21501990.
 //  Copyright © 2023 Oberon Day-West. All rights reserved.
-//
+//  This code has been referenced and adapted from Reiss and McPherson (2015), Pirkle (2019) and Tarr (2019).
+//  Please refer to the accompanying report for full list of references.
 
 #ifndef BasicCompressor_h
 #define BasicCompressor_h

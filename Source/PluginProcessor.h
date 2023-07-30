@@ -2,6 +2,9 @@
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin processor.
+    Oberon Day-West (2023). #21501990.
+    This code has been referenced and adapted from Schiermeyer (2021a; 2021b), Pirkle (2019) and Tarr (2019).
+    Please refer to the accompanying report for full list of references.
 
   ==============================================================================
 */

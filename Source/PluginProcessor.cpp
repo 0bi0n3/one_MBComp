@@ -2,6 +2,9 @@
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin processor.
+     Oberon Day-West (2023). #21501990.
+     This code has been referenced and adapted from Schiermeyer (2021a; 2021b), Pirkle (2019) and Tarr (2019).
+     Please refer to the accompanying report for full list of references.
 
   ==============================================================================
 */
@@ -23,20 +26,34 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
                        )
 #endif
 {
-    compressor.attackTime = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
-    jassert( compressor.attackTime != nullptr );
+    using namespace PluginParameters;
+    const auto& parameters = GetParameters();
     
-    compressor.releaseTime = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
-    jassert( compressor.releaseTime != nullptr );
+    auto floatHelper = [&apvts = this->apvts, &parameters](auto& parameter, const auto& ParamNames)
+    {
+        parameter = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter(parameters.at(ParamNames)));
+        jassert( parameter != nullptr );
+    };
     
-    compressor.thresholdLevel = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
-    jassert( compressor.thresholdLevel != nullptr );
+    floatHelper(compressor.attackTime, ParamNames::Attack_LB);
+    floatHelper(compressor.releaseTime, ParamNames::Release_LB);
+    floatHelper(compressor.thresholdLevel, ParamNames::Threshold_LB);
+
+    auto choiceHelper = [&apvts = this->apvts, &parameters](auto& parameter, const auto& ParamNames)
+    {
+        parameter = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(parameters.at(ParamNames)));
+        jassert( parameter != nullptr );
+    };
     
-    compressor.ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
-    jassert( compressor.ratio != nullptr );
+    choiceHelper(compressor.ratio, ParamNames::Ratio_LB);
     
-    compressor.bypassed = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("Bypassed"));
-    jassert( compressor.bypassed != nullptr );
+    auto boolHelper = [&apvts = this->apvts, &parameters](auto& parameter, const auto& ParamNames)
+    {
+        parameter = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter(parameters.at(ParamNames)));
+        jassert( parameter != nullptr );
+    };
+    
+    boolHelper(compressor.bypassed, ParamNames::Bypass_LB);
 }
 
 One_MBCompAudioProcessor::~One_MBCompAudioProcessor()
@@ -220,21 +237,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     APVTS::ParameterLayout PluginGUIlayout;
     
     using namespace juce;
+    using namespace PluginParameters;
+    const auto& parameters = GetParameters();
     
-    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Threshold",
-                                                     "Threshold",
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_LB),
+                                                              parameters.at(ParamNames::Threshold_LB),
                                                      NormalisableRange<float>(-60, 12, 1, 1),
                                                      0));
     
     auto attkRelRange = NormalisableRange<float>(5, 500, 1, 1);
     
-    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Attack",
-                                                     "Attack",
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_LB),
+                                                              parameters.at(ParamNames::Attack_LB),
                                                      attkRelRange,
                                                      50));
     
-    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>("Release",
-                                                     "Release",
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_LB),
+                                                              parameters.at(ParamNames::Release_LB),
                                                      attkRelRange,
                                                      250));
     auto ratioChoices = std::vector<double>{ 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10, 15, 20, 50 };
@@ -245,9 +265,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
         strArr.add( juce::String(rChoice, 1) );
     }
     
-    PluginGUIlayout.add(std::make_unique<AudioParameterChoice>("Ratio", "Ratio", strArr, 3));
+    PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_LB),
+                                                               parameters.at(ParamNames::Ratio_LB), strArr, 3));
     
-    PluginGUIlayout.add(std::make_unique<AudioParameterBool>("Bypassed", "Bypassed", false));
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_LB),
+                                                             parameters.at(ParamNames::Bypass_LB), false));
      
     return PluginGUIlayout;
 }
