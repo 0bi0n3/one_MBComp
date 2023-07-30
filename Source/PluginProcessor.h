@@ -13,6 +13,7 @@
 
 #include <JuceHeader.h>
 #include "BasicCompressor.h"
+#include "butterworthFilter.h"
 
 namespace PluginParameters
 {
@@ -96,7 +97,7 @@ public:
         compressor.setAttackTime( attackTime->get() );
         compressor.setReleaseTime( releaseTime->get() );
         compressor.setThresholdLevel( thresholdLevel->get() );
-        compressor.setRatio( ratio->getCurrentChoiceName().getFloatValue() );
+        compressor.setCompressionRatio( ratio->getCurrentChoiceName().getFloatValue() );
     }
     
     void process(juce::AudioBuffer<float>& buffer)
@@ -161,6 +162,15 @@ public:
 
 private:
     CompressorBand compressor;
+    
+    LinkwitzRiley LPF, HPF;
+    
+    using Filters = juce::dsp::LinkwitzRileyFilter<float>;
+    Filters LP, HP;
+    
+    juce::AudioParameterFloat* lowFreqXover { nullptr };
+    
+    std::array<juce::AudioBuffer<float>, 2> filterBuffers;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessor)
