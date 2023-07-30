@@ -46,54 +46,68 @@ void BasicCompressor::setMakeUpGain(float newMakeUpGain)
 
 void BasicCompressor::process(juce::dsp::ProcessContextReplacing<float>& context)
 {
-    auto& inputBlock = context.getInputBlock();
-    auto& outputBlock = context.getOutputBlock();
+    // Get input and output blocks from the context
+    auto& inputAudioBlock = context.getInputBlock();
+    auto& outputAudioBlock = context.getOutputBlock();
     
-    const int numSamples { static_cast<int>(outputBlock.getNumSamples()) };
-    const int numChannels { static_cast<int>(outputBlock.getNumChannels()) };
+    // Get the number of samples and channels from the output block
+    const int numberOfSamples { static_cast<int>(outputAudioBlock.getNumSamples()) };
+    const int numberOfChannels { static_cast<int>(outputAudioBlock.getNumChannels()) };
 
-    if( context.isBypassed )
+    // If context is bypassed, copy input block to output block without processing
+    if(context.isBypassed)
     {
-        outputBlock.copyFrom(inputBlock);
+        outputAudioBlock.copyFrom(inputAudioBlock);
     }
     else
     {
-        for (int channel = 0; channel < numChannels; ++channel)
+        // If not bypassed, iterate over each channel
+        for (int currentChannel = 0; currentChannel < numberOfChannels; ++currentChannel)
         {
-            const float* channelDataIn = inputBlock.getChannelPointer(channel);
-            float* channelDataOut = outputBlock.getChannelPointer(channel);
+            // Get the data for current input and output channels
+            const float* inputChannelData = inputAudioBlock.getChannelPointer(currentChannel);
+            float* outputChannelData = outputAudioBlock.getChannelPointer(currentChannel);
             
-            for (int i = 0; i < numSamples; ++i)
+            // Iterate over each sample in the channel
+            for (int currentSampleIndex = 0; currentSampleIndex < numberOfSamples; ++currentSampleIndex)
             {
-                float sample = channelDataIn[i];
+                // Get the current sample
+                float currentSample = inputChannelData[currentSampleIndex];
                 
-                float x_g;
-                if (std::abs(sample) < 0.000001f)
-                    x_g = -120.0f;
+                // Compute the input level in decibels
+                float inputLevelInDecibels;
+                if (std::abs(currentSample) < 0.000001f)
+                    inputLevelInDecibels = -120.0f;
                 else
-                    x_g = 20.0f * std::log10(std::abs(sample));
+                    inputLevelInDecibels = 20.0f * std::log10(std::abs(currentSample));
                 
-                float y_g;
-                if (x_g >= threshold_)
-                    y_g = threshold_ + (x_g - threshold_) / ratio_;
+                // Compute the output level in decibels
+                float outputLevelInDecibels;
+                if (inputLevelInDecibels >= threshold_)
+                    outputLevelInDecibels = threshold_ + (inputLevelInDecibels - threshold_) / ratio_;
                 else
-                    y_g = x_g;
+                    outputLevelInDecibels = inputLevelInDecibels;
                 
-                float x_l = x_g - y_g;
+                // Compute the difference between input and output levels
+                float levelDifference = inputLevelInDecibels - outputLevelInDecibels;
                 
-                float y_l;
-                if (x_l > yL_prev)
-                    y_l = alphaAttack * yL_prev + (1.0f - alphaAttack) * x_l;
+                // Apply attack or release envelope to the level difference
+                float envelopeLevel;
+                if (levelDifference > previousEnvelopeLevel)
+                    envelopeLevel = alphaAttack * previousEnvelopeLevel + (1.0f - alphaAttack) * levelDifference;
                 else
-                    y_l = alphaRelease * yL_prev + (1.0f - alphaRelease) * x_l;
+                    envelopeLevel = alphaRelease * previousEnvelopeLevel + (1.0f - alphaRelease) * levelDifference;
                 
-                float c = std::pow(10.0f, (makeUpGain_ - y_l) / 20.0f);
-                yL_prev = y_l;
+                // Compute the gain to be applied on the sample
+                float gainForSample = std::pow(10.0f, (makeUpGain_ - envelopeLevel) / 20.0f);
+                previousEnvelopeLevel = envelopeLevel;
                 
-                channelDataOut[i] = sample * c;  // Apply gain to the sample
+                // Apply gain to the sample and write it to the output
+                outputChannelData[currentSampleIndex] = currentSample * gainForSample;
             }
         }
     }
 }
+
 
 

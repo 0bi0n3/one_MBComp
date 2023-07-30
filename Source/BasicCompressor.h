@@ -15,7 +15,7 @@
 class BasicCompressor
 {
 private:
-    float yL_prev = 0.0f;
+    float previousEnvelopeLevel = 0.0f;
     float threshold_ = -10.0f;
     float ratio_ = 20.0f;
     float tauAttack_ = 2000.0f;

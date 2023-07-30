@@ -4,10 +4,11 @@
 % Please refer to accompanying report for full reference list and details.
 % Oberon Day-West (21501990).
 %%
+clc; clear;
 
 % Prepare input signal
-[inputBuffer, Fs] = audioread('audioSamples/03BlackWater.mp3');
-inputBuffer = mean(inputBuffer, 2);  % Convert to mono
+[inputBuffer, Fs] = audioread('audioLoop1.wav');
+inputBuffer = mean(inputBuffer, 4);
 bufferSize = length(inputBuffer);
 samplerate = 44100;   % Sample rate
 
@@ -64,8 +65,8 @@ outputBuffer = inputBuffer .* c;
 t = (1:bufferSize) / samplerate;
 
 % Specify zoom start and end in seconds
-zoomStart_s = 100;  % start at 2 seconds
-zoomEnd_s = 200;    % end at 3 seconds
+zoomStart_s = 30;  % start at 30 seconds
+zoomEnd_s = 40;    % end at 40 seconds
 
 % Convert to sample indices
 zoomStart = round(zoomStart_s * samplerate);  
