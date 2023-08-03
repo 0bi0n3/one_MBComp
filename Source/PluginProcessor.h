@@ -166,14 +166,15 @@ private:
 //    LinkwitzRiley LPF, HPF;
     
     using Filters = juce::dsp::LinkwitzRileyFilter<float>;
-    Filters LP, HP;
-    Filters AP;
-   
-    juce::AudioParameterFloat* lowFreqXover { nullptr };
+    //      FC0     FC1
+    Filters LP1,    AP2,
+            HP1,    LP2,
+                    HP2;
     
+    juce::AudioParameterFloat* lowMidFreqXover { nullptr };
+    juce::AudioParameterFloat* midHighFreqXover { nullptr };
     
-    juce::AudioBuffer<float> allpassBuffer;
-    std::array<juce::AudioBuffer<float>, 2> filterBuffers;
+    std::array<juce::AudioBuffer<float>, 3> filterBuffers;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessor)
