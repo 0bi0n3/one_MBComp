@@ -59,6 +59,7 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
     
     LP.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
     HP.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
+    AP.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
 }
 
 One_MBCompAudioProcessor::~One_MBCompAudioProcessor()
@@ -141,8 +142,11 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     compressor.prepareComp(spec);
     LP.prepare(spec);
     HP.prepare(spec);
+    AP.prepare(spec);
     
-    for( auto& buffer : filterBuffers)
+    allpassBuffer.setSize(spec.numChannels, samplesPerBlock);
+    
+    for( auto& buffer : filterBuffers )
     {
         buffer.setSize(spec.numChannels, samplesPerBlock);
     }
@@ -198,26 +202,37 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 //    compressor.updateCompressorParamSettings();
 //    compressor.process(buffer);
     
-    for( auto& f_buffer : filterBuffers )
+    for( auto& filter_buffer : filterBuffers )
     {
-        f_buffer = buffer;
+        filter_buffer = buffer;
     }
     
-    auto f_cutoff = lowFreqXover->get();
-    LP.setCutoffFrequency(f_cutoff);
-    HP.setCutoffFrequency(f_cutoff);
+    auto filter_cutoff = lowFreqXover->get();
+    LP.setCutoffFrequency(filter_cutoff);
+    HP.setCutoffFrequency(filter_cutoff);
+    AP.setCutoffFrequency(filter_cutoff);
     
-    auto f_bufferBlock0 = juce::dsp::AudioBlock<float>(filterBuffers[0]);
-    auto f_bufferBlock1 = juce::dsp::AudioBlock<float>(filterBuffers[1]);
+    auto filter_bufferBlock0 = juce::dsp::AudioBlock<float>(filterBuffers[0]);
+    auto filter_bufferBlock1 = juce::dsp::AudioBlock<float>(filterBuffers[1]);
     
-    auto f_bufferContext0 = juce::dsp::ProcessContextReplacing<float>(f_bufferBlock0);
-    auto f_bufferContext1 = juce::dsp::ProcessContextReplacing<float>(f_bufferBlock1);
+    auto filter_bufferContext0 = juce::dsp::ProcessContextReplacing<float>(filter_bufferBlock0);
+    auto filter_bufferContext1 = juce::dsp::ProcessContextReplacing<float>(filter_bufferBlock1);
     
-    LP.process(f_bufferContext0);
-    HP.process(f_bufferContext1);
+    LP.process(filter_bufferContext0);
+    HP.process(filter_bufferContext1);
     
     auto numberSamples = buffer.getNumSamples();
     auto numberChannels = buffer.getNumChannels();
+    
+//    if( compressor.bypassed->get() )
+//    {
+//        return;
+//    }
+//
+    allpassBuffer = buffer;
+    auto apfilter_bufferBlock = juce::dsp::AudioBlock<float>(allpassBuffer);
+    auto apfilter_bufferContext = juce::dsp::ProcessContextReplacing<float>(apfilter_bufferBlock);
+    AP.process(apfilter_bufferContext);
     
     buffer.clear();
     
@@ -229,9 +244,29 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         }
     };
     
+//    if( !compressor.bypassed->get() )
+//    {
+//        addFilterBand(buffer, filterBuffers[0]);
+//        addFilterBand(buffer, filterBuffers[1]);
+//    }
+//    else
+//    {
+//        addFilterBand(buffer, allpassBuffer);
+//    }
+    
     addFilterBand(buffer, filterBuffers[0]);
     addFilterBand(buffer, filterBuffers[1]);
-
+    
+    if( compressor.bypassed->get() )
+    {
+        for( auto ch = 0; ch < numberChannels; ++ch)
+        {
+            juce::FloatVectorOperations::multiply(allpassBuffer.getWritePointer(ch), -1.f, numberSamples);
+        }
+        
+        addFilterBand(buffer, allpassBuffer);
+    }
+    
 }
 
 //==============================================================================

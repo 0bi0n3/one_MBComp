@@ -163,13 +163,16 @@ public:
 private:
     CompressorBand compressor;
     
-    LinkwitzRiley LPF, HPF;
+//    LinkwitzRiley LPF, HPF;
     
     using Filters = juce::dsp::LinkwitzRileyFilter<float>;
     Filters LP, HP;
-    
+    Filters AP;
+   
     juce::AudioParameterFloat* lowFreqXover { nullptr };
     
+    
+    juce::AudioBuffer<float> allpassBuffer;
     std::array<juce::AudioBuffer<float>, 2> filterBuffers;
     
     //==============================================================================
