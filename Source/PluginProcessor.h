@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <array>
 #include <JuceHeader.h>
 #include "BasicCompressor.h"
 #include "butterworthFilter.h"
@@ -161,7 +162,10 @@ public:
     APVTS apvts { *this, nullptr, "Parameters", createParameterLayout() };
 
 private:
-    CompressorBand compressor;
+    std::array<CompressorBand, 3> compressors;
+    CompressorBand& low_BandCompressor = compressors[0];
+    CompressorBand& mid_BandCompressor = compressors[1];
+    CompressorBand& high_BandCompressor = compressors[2];
     
 //    LinkwitzRiley LPF, HPF;
     

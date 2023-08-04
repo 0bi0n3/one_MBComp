@@ -35,9 +35,17 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
         jassert( parameter != nullptr );
     };
     
-    floatHelper(compressor.attackTime, ParamNames::Attack_LB);
-    floatHelper(compressor.releaseTime, ParamNames::Release_LB);
-    floatHelper(compressor.thresholdLevel, ParamNames::Threshold_LB);
+    floatHelper(low_BandCompressor.attackTime,      ParamNames::Attack_LB);
+    floatHelper(low_BandCompressor.releaseTime,     ParamNames::Release_LB);
+    floatHelper(low_BandCompressor.thresholdLevel,  ParamNames::Threshold_LB);
+    
+    floatHelper(mid_BandCompressor.attackTime,      ParamNames::Attack_MB);
+    floatHelper(mid_BandCompressor.releaseTime,     ParamNames::Release_MB);
+    floatHelper(mid_BandCompressor.thresholdLevel,  ParamNames::Threshold_MB);
+    
+    floatHelper(high_BandCompressor.attackTime,     ParamNames::Attack_HB);
+    floatHelper(high_BandCompressor.releaseTime,    ParamNames::Release_HB);
+    floatHelper(high_BandCompressor.thresholdLevel, ParamNames::Threshold_HB);
 
     auto choiceHelper = [&apvts = this->apvts, &parameters](auto& parameter, const auto& ParamNames)
     {
@@ -45,7 +53,10 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
         jassert( parameter != nullptr );
     };
     
-    choiceHelper(compressor.ratio, ParamNames::Ratio_LB);
+    choiceHelper(low_BandCompressor.ratio,  ParamNames::Ratio_LB);
+    choiceHelper(mid_BandCompressor.ratio,  ParamNames::Ratio_MB);
+    choiceHelper(high_BandCompressor.ratio, ParamNames::Ratio_HB);
+   
     
     auto boolHelper = [&apvts = this->apvts, &parameters](auto& parameter, const auto& ParamNames)
     {
@@ -53,7 +64,9 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
         jassert( parameter != nullptr );
     };
     
-    boolHelper(compressor.bypassed, ParamNames::Bypass_LB);
+    boolHelper(low_BandCompressor.bypassed, ParamNames::Bypass_LB);
+    boolHelper(mid_BandCompressor.bypassed, ParamNames::Bypass_MB);
+    boolHelper(high_BandCompressor.bypassed, ParamNames::Bypass_HB);
     
     floatHelper(lowMidFreqXover, ParamNames::Low_Mid_XO_Frequency);
     floatHelper(midHighFreqXover, ParamNames::Mid_High_XO_Frequency);
@@ -148,7 +161,11 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     spec.numChannels = getTotalNumOutputChannels();
     spec.sampleRate = sampleRate;
     
-    compressor.prepareComp(spec);
+    for( auto& comp : compressors )
+    {
+        comp.prepareComp(spec);
+    }
+    
     LP1.prepare(spec);
     HP1.prepare(spec);
     AP2.prepare(spec);
@@ -212,8 +229,11 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-//    compressor.updateCompressorParamSettings();
-//    compressor.process(buffer);
+    for( auto& compressor : compressors )
+    {
+        compressor.updateCompressorParamSettings();
+        //    compressor.process(buffer);
+    }
     
     for( auto& filter_buffer : filterBuffers )
     {
@@ -257,20 +277,14 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     
     HP2.process(filter_bufferContext2);
     
-//    auto filter_invAPBlock = juce::dsp::AudioBlock<float>(invAPBuffer);
-//    auto filter_invAPContext = juce::dsp::ProcessContextReplacing<float>(filter_invAPBlock);
-//
-//    invAP1.process(filter_invAPContext);
-//    invAP2.process(filter_invAPContext);
+    for( size_t i = 0; i < filterBuffers.size(); ++i )
+    {
+        compressors[i].process(filterBuffers[i]);
+    }
     
     auto numberSamples = buffer.getNumSamples();
     auto numberChannels = buffer.getNumChannels();
-    
-    if( compressor.bypassed->get() )
-    {
-        return;
-    }
-    
+        
     buffer.clear();
     
     auto addFilterBand = [nc = numberChannels, ns = numberSamples]( auto& inputBuffer, const auto& source )
@@ -284,16 +298,6 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     addFilterBand(buffer, filterBuffers[0]);
     addFilterBand(buffer, filterBuffers[1]);
     addFilterBand(buffer, filterBuffers[2]);
-    
-//    if( compressor.bypassed->get() )
-//    {
-//        for( auto ch = 0; ch < numberChannels; ++ch)
-//        {
-//            juce::FloatVectorOperations::multiply(invAPBuffer.getWritePointer(ch), -1.f, numberSamples);
-//        }
-//
-//        addFilterBand(buffer, invAPBuffer);
-//    }
     
 }
 
@@ -338,23 +342,55 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     using namespace PluginParameters;
     const auto& parameters = GetParameters();
     
-    
+    // ===== Threshold parameters
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_LB),
                                                               parameters.at(ParamNames::Threshold_LB),
                                                      NormalisableRange<float>(-60, 12, 1, 1),
                                                      0));
     
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_MB),
+                                                              parameters.at(ParamNames::Threshold_MB),
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_HB),
+                                                              parameters.at(ParamNames::Threshold_HB),
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
+    
     auto attkRelRange = NormalisableRange<float>(5, 500, 1, 1);
     
+    // ===== Attack parameters
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_LB),
                                                               parameters.at(ParamNames::Attack_LB),
                                                      attkRelRange,
                                                      50));
     
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_MB),
+                                                              parameters.at(ParamNames::Attack_MB),
+                                                     attkRelRange,
+                                                     50));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_HB),
+                                                              parameters.at(ParamNames::Attack_HB),
+                                                     attkRelRange,
+                                                     50));
+    // ===== Release parameters
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_LB),
                                                               parameters.at(ParamNames::Release_LB),
                                                      attkRelRange,
                                                      250));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_MB),
+                                                              parameters.at(ParamNames::Release_MB),
+                                                     attkRelRange,
+                                                     250));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_HB),
+                                                              parameters.at(ParamNames::Release_HB),
+                                                     attkRelRange,
+                                                     250));
+    
     auto ratioChoices = std::vector<double>{ 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10, 15, 20, 50 };
     
     juce::StringArray strArr;
@@ -366,8 +402,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_LB),
                                                                parameters.at(ParamNames::Ratio_LB), strArr, 3));
     
+    PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_MB),
+                                                               parameters.at(ParamNames::Ratio_MB), strArr, 3));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_HB),
+                                                               parameters.at(ParamNames::Ratio_HB), strArr, 3));
+    
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_LB),
                                                              parameters.at(ParamNames::Bypass_LB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_MB),
+                                                             parameters.at(ParamNames::Bypass_MB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_HB),
+                                                             parameters.at(ParamNames::Bypass_HB), false));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Low_Mid_XO_Frequency),
                                                              parameters.at(ParamNames::Low_Mid_XO_Frequency),
