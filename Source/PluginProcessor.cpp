@@ -79,6 +79,9 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
     floatHelper(lowMidFreqXover, ParamNames::Low_Mid_XO_Frequency);
     floatHelper(midHighFreqXover, ParamNames::Mid_High_XO_Frequency);
     
+    floatHelper(inputGainParameter, ParamNames::Gain_Input);
+    floatHelper(outputGainParameter, ParamNames::Gain_Output);
+    
     LP1.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
     HP1.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
     
@@ -183,6 +186,12 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 //    invAP1.prepare(spec);
 //    invAP2.prepare(spec);
 //    invAPBuffer.setSize(spec.numChannels, samplesPerBlock);
+    
+    inputGain.prepare(spec);
+    outputGain.prepare(spec);
+    
+    inputGain.setRampDurationSeconds(0.05); // ms
+    outputGain.setRampDurationSeconds(0.05);
         
     for( auto& buffer : filterBuffers )
     {
@@ -224,85 +233,88 @@ bool One_MBCompAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 
 void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    // juce::ScopedNoDenormals disables denormalised numbers, which can be a source of
+    // performance issues in audio processing.
     juce::ScopedNoDenormals noDenormals;
+    
+    // Get the total number of input and output channels
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+    // This loop clears any output channels that didn't contain input data
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
+    // Loop through all compressors and update their parameter settings
     for( auto& compressor : compressors )
     {
         compressor.updateCompressorParamSettings();
-        //    compressor.process(buffer);
     }
     
+    // Set the input and output gain values in decibels
+    inputGain.setGainDecibels( inputGainParameter->get() );
+    outputGain.setGainDecibels( outputGainParameter->get() );
+    
+    // Apply the gain to the buffer
+    applyGain(buffer, inputGain);
+    
+    // Assign the contents of buffer to all elements in the filterBuffers vector
     for( auto& filter_buffer : filterBuffers )
     {
         filter_buffer = buffer;
     }
     
-//    invAPBuffer = buffer;
-    
+    // Get the crossover frequencies for the filters
     auto filter_lowMidCutoff = lowMidFreqXover->get();
+    auto filter_midHighCutoff = midHighFreqXover->get();
+    
+    // Set the cutoff frequencies for the filters
     LP1.setCutoffFrequency(filter_lowMidCutoff);
     HP1.setCutoffFrequency(filter_lowMidCutoff);
-//    invAP1.setCutoffFrequency(filter_lowMidCutoff);
-    
-    auto filter_midHighCutoff = midHighFreqXover->get();
     AP2.setCutoffFrequency(filter_midHighCutoff);
     LP2.setCutoffFrequency(filter_midHighCutoff);
     HP2.setCutoffFrequency(filter_midHighCutoff);
-//    invAP2.setCutoffFrequency(filter_midHighCutoff);
 
+    // Create AudioBlocks from the filterBuffers
     auto filter_bufferBlock0 = juce::dsp::AudioBlock<float>(filterBuffers[0]);
     auto filter_bufferBlock1 = juce::dsp::AudioBlock<float>(filterBuffers[1]);
     auto filter_bufferBlock2 = juce::dsp::AudioBlock<float>(filterBuffers[2]);
     
+    // Create ProcessContexts from the AudioBlocks
     auto filter_bufferContext0 = juce::dsp::ProcessContextReplacing<float>(filter_bufferBlock0);
     auto filter_bufferContext1 = juce::dsp::ProcessContextReplacing<float>(filter_bufferBlock1);
     auto filter_bufferContext2 = juce::dsp::ProcessContextReplacing<float>(filter_bufferBlock2);
     
-    /* filter flow
-     LP1 -> AP2 = -----\
-     HP1 -> LP2 =      /-----\
-     HP1 -> HP2 =            /-----
-     */
-    
-    
+    // Process the filters in a certain order (flow)
     LP1.process(filter_bufferContext0);
     AP2.process(filter_bufferContext0);
-    
     HP1.process(filter_bufferContext1);
     filterBuffers[2] = filterBuffers[1];
     LP2.process(filter_bufferContext1);
-    
     HP2.process(filter_bufferContext2);
     
+    // Loop through all compressors and apply them to the corresponding filter buffer
     for( size_t i = 0; i < filterBuffers.size(); ++i )
     {
         compressors[i].process(filterBuffers[i]);
     }
     
-    auto numberSamples = buffer.getNumSamples();
-    auto numberChannels = buffer.getNumChannels();
-        
+//    auto numberSamples = buffer.getNumSamples();
+//    auto numberChannels = buffer.getNumChannels();
+    
+    // Clear the buffer
     buffer.clear();
     
-    auto addFilterBand = [nc = numberChannels, ns = numberSamples]( auto& inputBuffer, const auto& source )
+    // A function that adds a source buffer to the input buffer
+    auto addFilterBand = [numberChannels = buffer.getNumChannels(), numberSamples = buffer.getNumSamples()]( auto& inputBuffer, const auto& source )
     {
-        for( auto i = 0; i < nc; ++i )
+        for( auto i = 0; i < numberChannels; ++i )
         {
-            inputBuffer.addFrom(i, 0, source, i, 0, ns);
+            inputBuffer.addFrom(i, 0, source, i, 0, numberSamples);
         }
     };
     
+    // Check if any compressors are soloed
     auto bandsAreSoloed = false;
     for( auto& comp : compressors )
     {
@@ -312,11 +324,9 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
             break;
         }
     }
-        
-//    addFilterBand(buffer, filterBuffers[0]);
-//    addFilterBand(buffer, filterBuffers[1]);
-//    addFilterBand(buffer, filterBuffers[2]);
     
+    // If any compressors are soloed, add only those filter bands to the buffer
+    // Otherwise, add all unmuted filter bands to the buffer
     if( bandsAreSoloed )
     {
         for( size_t i = 0; i < compressors.size(); ++i )
@@ -340,6 +350,8 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         }
     }
     
+    // Apply the output gain to the buffer
+    applyGain(buffer, outputGain);
 }
 
 //==============================================================================
@@ -377,70 +389,94 @@ void One_MBCompAudioProcessor::setStateInformation (const void* data, int sizeIn
 
 juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::createParameterLayout()
 {
+    // Define the layout for the plugin's parameters.
     APVTS::ParameterLayout PluginGUIlayout;
     
+    // Import namespaces for JUCE and the parameters used in this plugin.
     using namespace juce;
     using namespace PluginParameters;
-    const auto& parameters = GetParameters();
+    const auto& parameters = GetParameters(); // Get the parameters defined for the plugin.
+    
+    // ===== Gain parameters
+    // Define the range for the Gain parameters, -24 to 24 with steps of 0.5.
+    auto gainRangeValues = NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f);
+    
+    // Add Gain Input and Output parameters to the layout.
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Gain_Input),
+                                                              parameters.at(ParamNames::Gain_Input),
+                                                              gainRangeValues,
+                                                              0));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Gain_Output),
+                                                              parameters.at(ParamNames::Gain_Output),
+                                                              gainRangeValues,
+                                                              0));
     
     // ===== Threshold parameters
+    // Add threshold parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_LB),
                                                               parameters.at(ParamNames::Threshold_LB),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
-                                                     0));
+                                                              NormalisableRange<float>(-60, 12, 1, 1),
+                                                              0));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_MB),
                                                               parameters.at(ParamNames::Threshold_MB),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
-                                                     0));
+                                                              NormalisableRange<float>(-60, 12, 1, 1),
+                                                              0));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Threshold_HB),
                                                               parameters.at(ParamNames::Threshold_HB),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
-                                                     0));
-    
+                                                              NormalisableRange<float>(-60, 12, 1, 1),
+                                                              0));
+   
+    // Define the range for the Attack and Release parameters, 5 to 500 with steps of 1.
     auto attkRelRange = NormalisableRange<float>(5, 500, 1, 1);
     
     // ===== Attack parameters
+    // Add attack parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_LB),
                                                               parameters.at(ParamNames::Attack_LB),
-                                                     attkRelRange,
-                                                     50));
+                                                              attkRelRange,
+                                                              50));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_MB),
                                                               parameters.at(ParamNames::Attack_MB),
-                                                     attkRelRange,
-                                                     50));
+                                                              attkRelRange,
+                                                              50));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Attack_HB),
                                                               parameters.at(ParamNames::Attack_HB),
-                                                     attkRelRange,
-                                                     50));
+                                                              attkRelRange,
+                                                              50));
     // ===== Release parameters
+    // Add release parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_LB),
                                                               parameters.at(ParamNames::Release_LB),
-                                                     attkRelRange,
-                                                     250));
+                                                              attkRelRange,
+                                                              250));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_MB),
                                                               parameters.at(ParamNames::Release_MB),
-                                                     attkRelRange,
-                                                     250));
+                                                              attkRelRange,
+                                                              250));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Release_HB),
                                                               parameters.at(ParamNames::Release_HB),
-                                                     attkRelRange,
-                                                     250));
+                                                              attkRelRange,
+                                                              250));
     
+    // Define the choices for the Ratio parameter as a vector of doubles.
     auto ratioChoices = std::vector<double>{ 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10, 15, 20, 50 };
     
+    // Convert the ratio choices to a StringArray so they can be used with an AudioParameterChoice.
     juce::StringArray strArr;
     for( auto rChoice : ratioChoices )
     {
         strArr.add( juce::String(rChoice, 1) );
     }
     
-    // ===== Release parameters
+    // ===== Ratio parameters
+    // Add ratio parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_LB),
                                                                parameters.at(ParamNames::Ratio_LB), strArr, 3));
     
@@ -450,6 +486,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_HB),
                                                                parameters.at(ParamNames::Ratio_HB), strArr, 3));
     // ===== Bypass parameters
+    // Add bypass parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_LB),
                                                              parameters.at(ParamNames::Bypass_LB), false));
     
@@ -460,6 +497,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
                                                              parameters.at(ParamNames::Bypass_HB), false));
     
     // ===== Mute parameters
+    // Add mute parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Mute_LB),
                                                              parameters.at(ParamNames::Mute_LB), false));
     
@@ -470,6 +508,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
                                                              parameters.at(ParamNames::Mute_HB), false));
     
     // ===== Solo parameters
+    // Add solo parameters to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Solo_LB),
                                                              parameters.at(ParamNames::Solo_LB), false));
     
@@ -479,6 +518,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Solo_HB),
                                                              parameters.at(ParamNames::Solo_HB), false));
     
+    // Add Frequency parameters for Low-Mid Crossover and Mid-High Crossover to the layout.
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Low_Mid_XO_Frequency),
                                                              parameters.at(ParamNames::Low_Mid_XO_Frequency),
                                                               NormalisableRange<float>(20, 999, 1, 1), 400));
@@ -486,7 +526,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Mid_High_XO_Frequency),
                                                              parameters.at(ParamNames::Mid_High_XO_Frequency),
                                                               NormalisableRange<float>(1000, 20000, 1, 1), 2000));
-    
+    // Return the completed layout.
     return PluginGUIlayout;
 }
 

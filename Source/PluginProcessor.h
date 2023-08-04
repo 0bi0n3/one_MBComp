@@ -50,6 +50,9 @@ enum ParamNames
     Solo_LB,
     Solo_MB,
     Solo_HB,
+    
+    Gain_Input,
+    Gain_Output,
 };
 
 inline const std::map<ParamNames, juce::String>& GetParameters()
@@ -66,15 +69,15 @@ inline const std::map<ParamNames, juce::String>& GetParameters()
         { Attack_LB, "Low-Band Attack" },
         { Attack_MB, "Mid-Band Attack" },
         { Attack_HB, "High-Band Attack" },
-    
+        
         { Release_LB, "Low-Band Release" },
         { Release_MB, "Mid-Band Release" },
         { Release_HB, "High-Band Release" },
-    
+        
         { Ratio_LB, "Low-Band Ratio" },
         { Ratio_MB, "Mid-Band Ratio" },
         { Ratio_HB, "High-Band Ratio" },
-    
+        
         { Bypass_LB, "Low-Band Bypass" },
         { Bypass_MB, "Mid-Band Bypass" },
         { Bypass_HB, "High-Band Bypass" },
@@ -86,6 +89,9 @@ inline const std::map<ParamNames, juce::String>& GetParameters()
         { Solo_LB, "Low-Band Solo" },
         { Solo_MB, "Mid-Band Solo" },
         { Solo_HB, "High-Band Solo" },
+        
+        { Gain_Input, "Gain Input" },
+        { Gain_Output, "Gain Output" },
     };
     
     return parameters;
@@ -200,6 +206,18 @@ private:
     juce::AudioParameterFloat* midHighFreqXover { nullptr };
     
     std::array<juce::AudioBuffer<float>, 3> filterBuffers;
+    
+    juce::dsp::Gain<float> inputGain, outputGain;
+    juce::AudioParameterFloat* inputGainParameter { nullptr };
+    juce::AudioParameterFloat* outputGainParameter { nullptr };
+    
+    template<typename T, typename U>
+    void applyGain(T& buffer, U& gain)
+    {
+        auto block = juce::dsp::AudioBlock<float>(buffer);
+        auto context = juce::dsp::ProcessContextReplacing<float>(block);
+        gain.process(context);
+    }
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessor)
