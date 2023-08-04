@@ -68,6 +68,14 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
     boolHelper(mid_BandCompressor.bypassed, ParamNames::Bypass_MB);
     boolHelper(high_BandCompressor.bypassed, ParamNames::Bypass_HB);
     
+    boolHelper(low_BandCompressor.mute, ParamNames::Mute_LB);
+    boolHelper(mid_BandCompressor.mute, ParamNames::Mute_MB);
+    boolHelper(high_BandCompressor.mute, ParamNames::Mute_HB);
+    
+    boolHelper(low_BandCompressor.solo, ParamNames::Solo_LB);
+    boolHelper(mid_BandCompressor.solo, ParamNames::Solo_MB);
+    boolHelper(high_BandCompressor.solo, ParamNames::Solo_HB);
+    
     floatHelper(lowMidFreqXover, ParamNames::Low_Mid_XO_Frequency);
     floatHelper(midHighFreqXover, ParamNames::Mid_High_XO_Frequency);
     
@@ -294,10 +302,43 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
             inputBuffer.addFrom(i, 0, source, i, 0, ns);
         }
     };
+    
+    auto bandsAreSoloed = false;
+    for( auto& comp : compressors )
+    {
+        if( comp.solo->get() )
+        {
+            bandsAreSoloed = true;
+            break;
+        }
+    }
         
-    addFilterBand(buffer, filterBuffers[0]);
-    addFilterBand(buffer, filterBuffers[1]);
-    addFilterBand(buffer, filterBuffers[2]);
+//    addFilterBand(buffer, filterBuffers[0]);
+//    addFilterBand(buffer, filterBuffers[1]);
+//    addFilterBand(buffer, filterBuffers[2]);
+    
+    if( bandsAreSoloed )
+    {
+        for( size_t i = 0; i < compressors.size(); ++i )
+        {
+            auto& comp = compressors[i];
+            if( comp.solo->get() )
+            {
+                addFilterBand(buffer, filterBuffers[i]);
+            }
+        }
+    }
+    else
+    {
+        for( size_t i = 0; i < compressors.size(); ++i )
+        {
+            auto& comp = compressors[i];
+            if( ! comp.mute->get() )
+            {
+                addFilterBand(buffer, filterBuffers[i]);
+            }
+        }
+    }
     
 }
 
@@ -399,6 +440,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
         strArr.add( juce::String(rChoice, 1) );
     }
     
+    // ===== Release parameters
     PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_LB),
                                                                parameters.at(ParamNames::Ratio_LB), strArr, 3));
     
@@ -407,7 +449,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     
     PluginGUIlayout.add(std::make_unique<AudioParameterChoice>(parameters.at(ParamNames::Ratio_HB),
                                                                parameters.at(ParamNames::Ratio_HB), strArr, 3));
-    
+    // ===== Bypass parameters
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_LB),
                                                              parameters.at(ParamNames::Bypass_LB), false));
     
@@ -416,6 +458,26 @@ juce::AudioProcessorValueTreeState::ParameterLayout One_MBCompAudioProcessor::cr
     
     PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Bypass_HB),
                                                              parameters.at(ParamNames::Bypass_HB), false));
+    
+    // ===== Mute parameters
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Mute_LB),
+                                                             parameters.at(ParamNames::Mute_LB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Mute_MB),
+                                                             parameters.at(ParamNames::Mute_MB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Mute_HB),
+                                                             parameters.at(ParamNames::Mute_HB), false));
+    
+    // ===== Solo parameters
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Solo_LB),
+                                                             parameters.at(ParamNames::Solo_LB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Solo_MB),
+                                                             parameters.at(ParamNames::Solo_MB), false));
+    
+    PluginGUIlayout.add(std::make_unique<AudioParameterBool>(parameters.at(ParamNames::Solo_HB),
+                                                             parameters.at(ParamNames::Solo_HB), false));
     
     PluginGUIlayout.add(std::make_unique<AudioParameterFloat>(parameters.at(ParamNames::Low_Mid_XO_Frequency),
                                                              parameters.at(ParamNames::Low_Mid_XO_Frequency),
