@@ -8,6 +8,22 @@
 
 #pragma once
 
+/*
+ GUI design steps:
+ 1) Global controls, gain and crossover.
+ 2) Mid/main and controls(attack, release, threshold, ratio).
+ 3) Solo, mute and bypass buttons.
+ 4) Band selection.
+ 5) Band selection = same as solo, mute and bypass button states.
+ 6) Customise buttons and sliders.
+ 7) Spectrum analyser.
+ 8) Meter overlay on bands.
+ 9) meter response to DSP.
+ 10) Crossover sections on analyser.
+ 11) Showing gain reduction on bands.
+ 12) Global bypass button.
+ */
+
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
