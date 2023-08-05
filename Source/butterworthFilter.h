@@ -59,7 +59,7 @@ class LinkwitzRFilter
     FilterType filterType;
     
     // Low pass and high pass Butterworth filters
-    ButterFilter lowPassFilter, highPassFilter;
+    ButterFilter lowPassFilter, highPassFilter, allPassFilter;
     
 public:
     // Constructor

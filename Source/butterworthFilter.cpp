@@ -56,7 +56,12 @@ void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFac
         }
         else if (filterType == FilterType::allpass)
         {
-            // implement allpass coefficients
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 - alpha) / a0;
+            coefficientA1 = -2 * std::cos(w0) / a0;
+            coefficientA2 = (1 + alpha) / a0;
+            coefficientB1 = coefficientA1; // same as a1
+            coefficientB2 = coefficientA0; // same as a0
         }
         else
         {
@@ -93,7 +98,8 @@ void ButterFilter::updateSampleRate(double newSampleRate)
 // ======================================================================
 // Constructor definition
 LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate, FilterType::lowpass),
-                                                        highPassFilter(sampleRate, FilterType::highpass)
+                                                        highPassFilter(sampleRate, FilterType::highpass),
+                                                        allPassFilter(sampleRate, FilterType::allpass)
 {}
 
 void LinkwitzRFilter::setType(FilterType newType)
@@ -111,6 +117,7 @@ void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
     // Set crossover frequency for low pass and high pass filter
     lowPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::lowpass);
     highPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::highpass);
+    allPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::allpass);
 }
 
 double LinkwitzRFilter::processFilter(double inputSample, int channelNumber)
@@ -128,8 +135,7 @@ double LinkwitzRFilter::processFilter(double inputSample, int channelNumber)
     }
     else // allpass
     {
-        // Implement the allpass behavior
-        // ...
+        return allPassFilter.processFilter(allPassFilter.processFilter(inputSample, channelNumber), channelNumber);
     }
     return 0.0; // Default return value
 }
