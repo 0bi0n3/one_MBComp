@@ -12,9 +12,14 @@
 #include <stdexcept>
 
 #include "butterworthFilter.h"
-    
 
-void Butterworth::setFilterParameters(double cutOffFrequency, double qualityFactor)
+// Constructor definition
+ButterFilter::ButterFilter(double sampleRate) : sampleRate(sampleRate),
+                                                previousSamples1(2, 0),
+                                                previousSamples2(2, 0)
+{}
+
+void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFactor)
 {
     // Validate filter parameters
     if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
@@ -37,7 +42,7 @@ void Butterworth::setFilterParameters(double cutOffFrequency, double qualityFact
     coefficientB2 = (1 - intermediateVariableK / qualityFactor + intermediateVariableK * intermediateVariableK) * normalizationFactor;
 }
 
-double Butterworth::processFilter(double inputSample, int channelNumber)
+double ButterFilter::processFilter(double inputSample, int channelNumber)
 {
     // Validate channel index
     if (channelNumber < 0 || channelNumber >= previousSamples1.size())
@@ -57,8 +62,12 @@ double Butterworth::processFilter(double inputSample, int channelNumber)
 }
 
 // ======================================================================
+// Constructor definition
+LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate),
+                                                        highPassFilter(sampleRate)
+{}
 
-void LinkwitzRiley::setCrossoverFrequency(double crossoverFrequency)
+void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
 {
     // Validate crossover frequency
     if (crossoverFrequency <= 0 || crossoverFrequency >= 1) {
@@ -70,13 +79,13 @@ void LinkwitzRiley::setCrossoverFrequency(double crossoverFrequency)
     highPassFilter.setFilterParameters(crossoverFrequency, 0.5);
 }
 
-double LinkwitzRiley::processLowPassFilter(double inputSample, int channelNumber)
+double LinkwitzRFilter::processLowPassFilter(double inputSample, int channelNumber)
 {
     // Process the input sample with the low pass filter twice
     return lowPassFilter.processFilter(lowPassFilter.processFilter(inputSample, channelNumber), channelNumber);
 }
 
-double LinkwitzRiley::processHighPassFilter(double inputSample, int channelNumber)
+double LinkwitzRFilter::processHighPassFilter(double inputSample, int channelNumber)
 {
     // Process the input sample with the high pass filter twice
     return highPassFilter.processFilter(highPassFilter.processFilter(inputSample, channelNumber), channelNumber);

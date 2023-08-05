@@ -16,7 +16,7 @@
 
 // =====================Butterworth========================
 
-class Butterworth
+class ButterFilter
 {
     // Coefficients for Butterworth filter
     double coefficientA0, coefficientA1, coefficientA2, coefficientB1, coefficientB2;
@@ -24,30 +24,45 @@ class Butterworth
     // Filter parameters
     double cutOffFrequency, qualityFactor;
     
+    double sampleRate;
+    
     // Vectors to store previous samples
     std::vector<double> previousSamples1, previousSamples2;
 
 public:
-    // Constructor initializes previous samples to 0
-    Butterworth() : previousSamples1(2, 0), previousSamples2(2, 0) {}
+    // Constructor
+    ButterFilter(double sampleRate);
 
     // Set filter parameters
     void setFilterParameters(double cutOffFrequency, double qualityFactor);
     
     // Process input sample through filter
     double processFilter(double inputSample, int channelNumber);
+    
+    // Update method to handle changes in sample rate
+    void updateSampleRate(double newSampleRate);
 };
 
 // =====================LinkwitzRiley========================
 
-class LinkwitzRiley
+class LinkwitzRFilter
 {
     // Low pass and high pass Butterworth filters
-    Butterworth lowPassFilter, highPassFilter;
+    ButterFilter lowPassFilter, highPassFilter;
+    
+    // Filter type enumeration
+    enum Type
+    {
+        lowpass,
+        highpass,
+        allpass
+    };
+
+    Type filterType;
 
 public:
-    // Default constructor
-    LinkwitzRiley() {}
+    // Constructor
+    LinkwitzRFilter(double sampleRate);
 
     // Set crossover frequency
     void setCrossoverFrequency(double crossoverFrequency);
@@ -57,6 +72,9 @@ public:
     
     // Process input sample through high pass filter
     double processHighPassFilter(double inputSample, int channelNumber);
+    
+    // Method to set the filter type
+    void setType(Type newType);
 };
 
 
