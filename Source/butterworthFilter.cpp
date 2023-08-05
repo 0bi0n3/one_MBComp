@@ -14,12 +14,12 @@
 #include "butterworthFilter.h"
 
 // Constructor definition
-ButterFilter::ButterFilter(double sampleRate) : sampleRate(sampleRate),
-                                                previousSamples1(2, 0),
-                                                previousSamples2(2, 0)
+ButterFilter::ButterFilter(double sampleRate, FilterType type) :    sampleRate(sampleRate),
+                                                                    previousSamples1(2, 0),
+                                                                    previousSamples2(2, 0)
 {}
 
-void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFactor)
+void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFactor, FilterType filterType)
 {
     // Validate filter parameters
     if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
@@ -29,17 +29,39 @@ void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFac
 
     this->cutOffFrequency = cutOffFrequency;
     this->qualityFactor = qualityFactor;
+    this->filterType = filterType;
 
-    // Calculate intermediate variables for Butterworth filter
-    double intermediateVariableK = std::tan(M_PI * cutOffFrequency);
-    double normalizationFactor = 1 / (1 + intermediateVariableK / qualityFactor + intermediateVariableK * intermediateVariableK);
-    
-    // Calculate coefficients for Butterworth filter
-    coefficientA0 = intermediateVariableK * intermediateVariableK * normalizationFactor;
-    coefficientA1 = 2 * coefficientA0;
-    coefficientA2 = coefficientA0;
-    coefficientB1 = 2 * (intermediateVariableK * intermediateVariableK - 1) * normalizationFactor;
-    coefficientB2 = (1 - intermediateVariableK / qualityFactor + intermediateVariableK * intermediateVariableK) * normalizationFactor;
+    // Calculate w0 and alpha based on cutOffFrequency and qualityFactor
+        double w0 = 2 * M_PI * cutOffFrequency / sampleRate;
+        double alpha = std::sin(w0) / (2 * qualityFactor);
+
+        // Calculate coefficients based on filter type
+        if (filterType == FilterType::lowpass)
+        {
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 - std::cos(w0)) / 2 / a0;
+            coefficientA1 = (1 - std::cos(w0)) / a0;
+            coefficientA2 = coefficientA0;
+            coefficientB1 = -2 * std::cos(w0) / a0;
+            coefficientB2 = (1 - alpha) / a0;
+        }
+        else if (filterType == FilterType::highpass)
+        {
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 + std::cos(w0)) / 2 / a0;
+            coefficientA1 = -(1 + std::cos(w0)) / a0;
+            coefficientA2 = coefficientA0;
+            coefficientB1 = -2 * std::cos(w0) / a0;
+            coefficientB2 = (1 - alpha) / a0;
+        }
+        else if (filterType == FilterType::allpass)
+        {
+            // implement allpass coefficients
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid filter type.");
+        }
 }
 
 double ButterFilter::processFilter(double inputSample, int channelNumber)
@@ -61,11 +83,23 @@ double ButterFilter::processFilter(double inputSample, int channelNumber)
     return outputSample;
 }
 
+void ButterFilter::updateSampleRate(double newSampleRate)
+{
+    sampleRate = newSampleRate;
+    // Recalculate the filter parameters with the new sample rate
+    setFilterParameters(cutOffFrequency, qualityFactor, filterType);
+}
+
 // ======================================================================
 // Constructor definition
-LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate),
-                                                        highPassFilter(sampleRate)
+LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate, FilterType::lowpass),
+                                                        highPassFilter(sampleRate, FilterType::highpass)
 {}
+
+void LinkwitzRFilter::setType(FilterType newType)
+{
+    filterType = newType;
+}
 
 void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
 {
@@ -75,20 +109,29 @@ void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
     }
 
     // Set crossover frequency for low pass and high pass filter
-    lowPassFilter.setFilterParameters(crossoverFrequency, 0.5);
-    highPassFilter.setFilterParameters(crossoverFrequency, 0.5);
+    lowPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::lowpass);
+    highPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::highpass);
 }
 
-double LinkwitzRFilter::processLowPassFilter(double inputSample, int channelNumber)
+double LinkwitzRFilter::processFilter(double inputSample, int channelNumber)
 {
-    // Process the input sample with the low pass filter twice
-    return lowPassFilter.processFilter(lowPassFilter.processFilter(inputSample, channelNumber), channelNumber);
-}
-
-double LinkwitzRFilter::processHighPassFilter(double inputSample, int channelNumber)
-{
-    // Process the input sample with the high pass filter twice
-    return highPassFilter.processFilter(highPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    // Check for filter type and process accordingly
+    if (filterType == FilterType::lowpass)
+    {
+        // Process the input sample with the low pass filter twice
+        return lowPassFilter.processFilter(lowPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    }
+    else if (filterType == FilterType::highpass)
+    {
+        // Process the input sample with the high pass filter twice
+        return highPassFilter.processFilter(highPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    }
+    else // allpass
+    {
+        // Implement the allpass behavior
+        // ...
+    }
+    return 0.0; // Default return value
 }
 
 
