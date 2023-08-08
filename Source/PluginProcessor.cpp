@@ -12,6 +12,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "BasicCompressor.h"
+#include "butterworthFilter.h"
 
 //==============================================================================
 One_MBCompAudioProcessor::One_MBCompAudioProcessor()
@@ -23,7 +24,8 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+LP1(getSampleRate()), AP2(getSampleRate()), HP1(getSampleRate()), LP2(getSampleRate()), HP2(getSampleRate())
 #endif
 {
     using namespace PluginParameters;
@@ -82,17 +84,13 @@ One_MBCompAudioProcessor::One_MBCompAudioProcessor()
     floatHelper(inputGainParameter, ParamNames::Gain_Input);
     floatHelper(outputGainParameter, ParamNames::Gain_Output);
     
-    LP1.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
-    HP1.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
-    
-    AP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-    
-    LP2.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
-    HP2.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
-    
-//    invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-//    invAP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
+    LP1.setType(FilterType::lowpass);
+    HP1.setType(FilterType::highpass);
 
+    AP2.setType(FilterType::allpass);
+
+    LP2.setType(FilterType::lowpass);
+    HP2.setType(FilterType::highpass);
 }
 
 One_MBCompAudioProcessor::~One_MBCompAudioProcessor()
@@ -269,11 +267,11 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     auto filter_midHighCutoff = midHighFreqXover->get();
     
     // Set the cutoff frequencies for the filters
-    LP1.setCutoffFrequency(filter_lowMidCutoff);
-    HP1.setCutoffFrequency(filter_lowMidCutoff);
-    AP2.setCutoffFrequency(filter_midHighCutoff);
-    LP2.setCutoffFrequency(filter_midHighCutoff);
-    HP2.setCutoffFrequency(filter_midHighCutoff);
+    LP1.setCrossoverFrequency(filter_lowMidCutoff);
+    HP1.setCrossoverFrequency(filter_lowMidCutoff);
+    AP2.setCrossoverFrequency(filter_midHighCutoff);
+    LP2.setCrossoverFrequency(filter_midHighCutoff);
+    HP2.setCrossoverFrequency(filter_midHighCutoff);
 
     // Create AudioBlocks from the filterBuffers
     auto filter_bufferBlock0 = juce::dsp::AudioBlock<float>(filterBuffers[0]);

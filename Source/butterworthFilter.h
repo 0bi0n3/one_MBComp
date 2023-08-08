@@ -9,7 +9,7 @@
 
 #ifndef butterworthFilter_h
 #define butterworthFilter_h
-
+#include <JuceHeader.h>
 #include <cmath>
 #include <vector>
 #include <stdexcept>
@@ -41,6 +41,8 @@ class ButterFilter
 public:
     // Constructor
     ButterFilter(double sampleRate, FilterType type);
+    
+    void prepare(const juce::dsp::ProcessSpec& spec);
 
     // Set filter parameters
     void setFilterParameters(double cutOffFrequency, double qualityFactor, FilterType filterType);
@@ -50,6 +52,8 @@ public:
     
     // Update method to handle changes in sample rate
     void updateSampleRate(double newSampleRate);
+    
+    void process(const juce::dsp::ProcessContextReplacing<float>& context);
 };
 
 // =====================LinkwitzRiley========================
@@ -58,12 +62,14 @@ class LinkwitzRFilter
 {
     FilterType filterType;
     
+public:
     // Low pass and high pass Butterworth filters
     ButterFilter lowPassFilter, highPassFilter, allPassFilter;
     
-public:
     // Constructor
     LinkwitzRFilter(double sampleRate);
+    
+    void prepare(const juce::dsp::ProcessSpec& spec);
 
     // Set crossover frequency
     void setCrossoverFrequency(double crossoverFrequency);
@@ -73,6 +79,8 @@ public:
         
     // Method to set the filter type
     void setType(FilterType newType);
+    
+    void process(const juce::dsp::ProcessContextReplacing<float>& context);
 };
 
 

@@ -10,22 +10,37 @@
 #include <cmath>
 #include <vector>
 #include <stdexcept>
+#include <JuceHeader.h>
 
 #include "butterworthFilter.h"
 
 // Constructor definition
-ButterFilter::ButterFilter(double sampleRate, FilterType type) :    sampleRate(sampleRate),
+ButterFilter::ButterFilter(double sampleRate, FilterType type) :    filterType(type),
+                                                                    sampleRate(sampleRate),
                                                                     previousSamples1(2, 0),
                                                                     previousSamples2(2, 0)
 {}
 
+void ButterFilter::prepare(const juce::dsp::ProcessSpec& spec)
+{
+    sampleRate = spec.sampleRate;
+    
+    // Resize the vectors to handle the number of channels provided
+    previousSamples1.resize(spec.numChannels, 0);
+    previousSamples2.resize(spec.numChannels, 0);
+    
+    // Reset the vectors to 0
+    std::fill(previousSamples1.begin(), previousSamples1.end(), 0.0);
+    std::fill(previousSamples2.begin(), previousSamples2.end(), 0.0);
+}
+
 void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFactor, FilterType filterType)
 {
-    // Validate filter parameters
-    if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
-    {
-        throw std::invalid_argument("Invalid filter parameters.");
-    }
+//    // Validate filter parameters
+//    if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
+//    {
+//        throw std::invalid_argument("Invalid filter parameters.");
+//    }
 
     this->cutOffFrequency = cutOffFrequency;
     this->qualityFactor = qualityFactor;
@@ -82,11 +97,13 @@ double ButterFilter::processFilter(double inputSample, int channelNumber)
     
     // Update previous samples
     previousSamples2[channelNumber] = previousSamples1[channelNumber];
+    previousSamples1[channelNumber] = inputSample;
     previousSamples1[channelNumber] = outputSample;
-    
+
     // Return filtered sample
     return outputSample;
 }
+
 
 void ButterFilter::updateSampleRate(double newSampleRate)
 {
@@ -95,12 +112,41 @@ void ButterFilter::updateSampleRate(double newSampleRate)
     setFilterParameters(cutOffFrequency, qualityFactor, filterType);
 }
 
+void ButterFilter::process(const juce::dsp::ProcessContextReplacing<float>& context)
+{
+    auto& inputBlock = context.getInputBlock();
+    auto& outputBlock = context.getOutputBlock();
+    const int numChannels = inputBlock.getNumChannels();
+    const int numSamples = inputBlock.getNumSamples();
+
+    // You'd need to loop over all channels and samples
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            // Process the samples and fill the outputBlock
+            outputBlock.getChannelPointer(channel)[i] = processFilter(inputBlock.getChannelPointer(channel)[i], channel);
+        }
+    }
+}
+
 // ======================================================================
 // Constructor definition
-LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate, FilterType::lowpass),
-                                                        highPassFilter(sampleRate, FilterType::highpass),
-                                                        allPassFilter(sampleRate, FilterType::allpass)
+LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate,
+                                                        FilterType::lowpass),
+                                                        highPassFilter(sampleRate,
+                                                        FilterType::highpass),
+                                                        allPassFilter(sampleRate,
+                                                        FilterType::allpass)
 {}
+
+void LinkwitzRFilter::prepare(const juce::dsp::ProcessSpec& spec)
+{
+    // Forward the preparation call to the inner filters
+    lowPassFilter.prepare(spec);
+    highPassFilter.prepare(spec);
+    allPassFilter.prepare(spec);
+}
 
 void LinkwitzRFilter::setType(FilterType newType)
 {
@@ -109,10 +155,10 @@ void LinkwitzRFilter::setType(FilterType newType)
 
 void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
 {
-    // Validate crossover frequency
-    if (crossoverFrequency <= 0 || crossoverFrequency >= 1) {
-        throw std::invalid_argument("Invalid crossover frequency.");
-    }
+//    // Validate crossover frequency
+//    if (crossoverFrequency <= 0 || crossoverFrequency >= 1) {
+//        throw std::invalid_argument("Invalid crossover frequency.");
+//    }
 
     // Set crossover frequency for low pass and high pass filter
     lowPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::lowpass);
@@ -138,6 +184,24 @@ double LinkwitzRFilter::processFilter(double inputSample, int channelNumber)
         return allPassFilter.processFilter(allPassFilter.processFilter(inputSample, channelNumber), channelNumber);
     }
     return 0.0; // Default return value
+}
+
+void LinkwitzRFilter::process(const juce::dsp::ProcessContextReplacing<float>& context)
+{
+    auto& inputBlock = context.getInputBlock();
+    auto& outputBlock = context.getOutputBlock();
+    const int numChannels = inputBlock.getNumChannels();
+    const int numSamples = inputBlock.getNumSamples();
+
+    // You'd need to loop over all channels and samples
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            // Process the samples and fill the outputBlock
+            outputBlock.getChannelPointer(channel)[i] = processFilter(inputBlock.getChannelPointer(channel)[i], channel);
+        }
+    }
 }
 
 
