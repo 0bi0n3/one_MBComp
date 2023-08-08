@@ -28,6 +28,17 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
+
+struct Placeholder : juce::Component
+{
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(customColour);
+    }
+    
+    juce::Colour customColour;
+};
+
 /**
 */
 class One_MBCompAudioProcessorEditor  : public juce::AudioProcessorEditor

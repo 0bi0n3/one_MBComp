@@ -192,21 +192,11 @@ private:
     CompressorBand& high_BandCompressor = compressors[2];
     
 //    LinkwitzRiley LPF, HPF;
-    
-//    using Filters = juce::dsp::LinkwitzRileyFilter<float>;
-//    //      FC0     FC1
-//    Filters LP11,    AP22,
-//            HP11,    LP22,
-//                    HP22;
-    
     using Filters = LinkwitzRFilter;
     //      FC0     FC1
     Filters LP1,    AP2,
             HP1,    LP2,
                     HP2;
-    
-//    Filters invAP1, invAP2;
-//    juce::AudioBuffer<float> invAPBuffer;
     
     juce::AudioParameterFloat* lowMidFreqXover { nullptr };
     juce::AudioParameterFloat* midHighFreqXover { nullptr };

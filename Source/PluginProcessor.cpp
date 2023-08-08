@@ -360,8 +360,8 @@ bool One_MBCompAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* One_MBCompAudioProcessor::createEditor()
 {
-//    return new One_MBCompAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new One_MBCompAudioProcessorEditor (*this);
+//    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
