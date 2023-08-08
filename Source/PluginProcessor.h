@@ -193,7 +193,13 @@ private:
     
 //    LinkwitzRiley LPF, HPF;
     
-    using Filters = juce::dsp::LinkwitzRileyFilter<float>;
+//    using Filters = juce::dsp::LinkwitzRileyFilter<float>;
+//    //      FC0     FC1
+//    Filters LP11,    AP22,
+//            HP11,    LP22,
+//                    HP22;
+    
+    using Filters = LinkwitzRFilter;
     //      FC0     FC1
     Filters LP1,    AP2,
             HP1,    LP2,
