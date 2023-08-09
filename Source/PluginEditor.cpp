@@ -285,46 +285,50 @@ CompressorBandControls::CompressorBandControls()
 void CompressorBandControls::resized()
 {
     auto bounds = getLocalBounds().reduced(5);
-    using namespace juce;
-    
-    FlexBox flexBox;
-    flexBox.flexDirection = FlexBox::Direction::row;
-    flexBox.flexWrap = FlexBox::Wrap::noWrap;
-    
-    auto spacer = FlexItem().withWidth(4);
-    auto endCap = FlexItem().withWidth(6);
-    
-    flexBox.items.add(endCap);
-    
-    flexBox.items.add(FlexItem(atkSlider1).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(relSlider1).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(thresSlider1).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(ratiSlider1).withFlex(1.f));
-    flexBox.items.add(spacer);
+        using namespace juce;
 
-    flexBox.items.add(FlexItem(atkSlider2).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(relSlider2).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(thresSlider2).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(ratiSlider2).withFlex(1.f));
-    flexBox.items.add(spacer);
+        // Individual Control FlexBoxes
+        FlexBox controlFlex1, controlFlex2, controlFlex3;
 
-    flexBox.items.add(FlexItem(atkSlider3).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(relSlider3).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(thresSlider3).withFlex(1.f));
-    flexBox.items.add(spacer);
-    flexBox.items.add(FlexItem(ratiSlider3).withFlex(1.f));
-       
-    flexBox.items.add(endCap);
-    
-    flexBox.performLayout(bounds);
+        // Configure them as rows because each control of a group is in one row.
+        controlFlex1.flexDirection = FlexBox::Direction::row;
+        controlFlex2.flexDirection = FlexBox::Direction::row;
+        controlFlex3.flexDirection = FlexBox::Direction::row;
+
+        controlFlex1.items.addArray({
+            FlexItem(atkSlider1).withFlex(1),
+            FlexItem(relSlider1).withFlex(1),
+            FlexItem(thresSlider1).withFlex(1),
+            FlexItem(ratiSlider1).withFlex(1)
+        });
+
+        controlFlex2.items.addArray({
+            FlexItem(atkSlider2).withFlex(1),
+            FlexItem(relSlider2).withFlex(1),
+            FlexItem(thresSlider2).withFlex(1),
+            FlexItem(ratiSlider2).withFlex(1)
+        });
+
+        controlFlex3.items.addArray({
+            FlexItem(atkSlider3).withFlex(1),
+            FlexItem(relSlider3).withFlex(1),
+            FlexItem(thresSlider3).withFlex(1),
+            FlexItem(ratiSlider3).withFlex(1)
+        });
+
+        // Main FlexBox to contain the Control FlexBoxes
+        FlexBox mainFlex;
+        mainFlex.flexDirection = FlexBox::Direction::column;  // Each group in a new line
+        mainFlex.justifyContent = FlexBox::JustifyContent::center;
+
+        mainFlex.items.addArray({
+            FlexItem(controlFlex1).withFlex(1),
+            FlexItem(controlFlex2).withFlex(1),
+            FlexItem(controlFlex3).withFlex(1)
+        });
+
+        // Perform layout within the component's bounds
+        mainFlex.performLayout(bounds);
 }
 
 //==============================================================================
