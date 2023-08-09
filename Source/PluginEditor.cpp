@@ -28,7 +28,7 @@ One_MBCompAudioProcessorEditor::One_MBCompAudioProcessorEditor (One_MBCompAudioP
     addAndMakeVisible(globalControls);
     addAndMakeVisible(bandControls);
     
-    setSize (600, 500);
+    setSize (500, 600);
 }
 
 One_MBCompAudioProcessorEditor::~One_MBCompAudioProcessorEditor()
@@ -52,9 +52,9 @@ void One_MBCompAudioProcessorEditor::resized()
     // subcomponents in your editor..
     auto bounds = getLocalBounds();
     
-    controlBar.setBounds(bounds.removeFromTop(32));
+    controlBar.setBounds(bounds.removeFromTop(40));
     
-    bandControls.setBounds(bounds.removeFromBottom(135));
+    bandControls.setBounds(bounds.removeFromBottom(225));
     
     analyser.setBounds(bounds.removeFromTop(225));
     
