@@ -2,6 +2,7 @@
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin editor.
+    This code has been referenced and adapted from Schiermeyer (2021a; 2021b).
 
   ==============================================================================
 */
@@ -9,6 +10,38 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+template<typename T>
+bool addKilohertz(T& value)
+{
+    if( value > static_cast<T>(999) )
+    {
+        value /= static_cast<T>(1000);
+        return true;
+    }
+    return false;
+}
+
+
+juce::String getValString(const juce::RangedAudioParameter& param,
+                          bool getLow,
+                          juce::String suffix)
+{
+    juce::String string;
+    
+    auto value = getLow ? param.getNormalisableRange().start : param.getNormalisableRange().end;
+    
+    bool useK = addKilohertz(value);
+    string << value;
+    
+    if( useK )
+    {
+        string << "k";
+    }
+    
+    string << suffix;
+    
+    return string;
+}
 //==============================================================================
 
 void LookAndFeel::drawRotarySlider(juce::Graphics &g,
@@ -186,12 +219,13 @@ juce::String RotarySliderWithLabels::getDisplayString() const
     {
         float val = getValue();
         
-        if(val > 999.f)
-        {
-            val /= 1000.f;
-            addK = true;
-        }
+//        if(val > 999.f)
+//        {
+//            val /= 1000.f;
+//            addK = true;
+//        }
         
+        addK = addKilohertz(val);
         str = juce::String(val, (addK ? 2 : 0));
     }
     else
@@ -225,6 +259,16 @@ GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
     using namespace PluginParameters;
     const auto& parameters = GetParameters();
     
+    auto getParamHelper = [&parameters, &apvts](const auto& name) -> auto&
+    {
+        return getParameter(apvts, parameters, name);
+    };
+    
+    inputGainSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Gain_Input),"dB");
+    lowMidCrossoverSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Low_Mid_XO_Frequency),"Hz");
+    midHighCrossoverSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Mid_High_XO_Frequency),"Hz");
+    outputGainSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Gain_Output),"dB");
+    
     auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment,
                                                       const auto& name,
                                                       auto& slider)
@@ -232,15 +276,36 @@ GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
         makeAttachment(attachment, apvts, parameters, name, slider);
     };
     
-    makeAttachmentHelper(inputGainSliderAttachment, ParamNames::Gain_Input, inputGainSlider);
-    makeAttachmentHelper(lowMidCrossoverSliderAttachment, ParamNames::Low_Mid_XO_Frequency, lowMidCrossoverSlider);
-    makeAttachmentHelper(midHighCrossoverSliderAttachment, ParamNames::Mid_High_XO_Frequency, midHighCrossoverSlider);
-    makeAttachmentHelper(outputGainSliderAttachment, ParamNames::Gain_Output, outputGainSlider);
+    makeAttachmentHelper(inputGainSliderAttachment,
+                         ParamNames::Gain_Input,
+                         *inputGainSlider);
+    makeAttachmentHelper(lowMidCrossoverSliderAttachment,
+                         ParamNames::Low_Mid_XO_Frequency,
+                         *lowMidCrossoverSlider);
+    makeAttachmentHelper(midHighCrossoverSliderAttachment,
+                         ParamNames::Mid_High_XO_Frequency,
+                         *midHighCrossoverSlider);
+    makeAttachmentHelper(outputGainSliderAttachment,
+                         ParamNames::Gain_Output,
+                         *outputGainSlider);
     
-    addAndMakeVisible(inputGainSlider);
-    addAndMakeVisible(lowMidCrossoverSlider);
-    addAndMakeVisible(midHighCrossoverSlider);
-    addAndMakeVisible(outputGainSlider);
+    addLabelPairs(inputGainSlider->labels,
+                  getParamHelper(ParamNames::Gain_Input),
+                  "dB");
+    addLabelPairs(lowMidCrossoverSlider->labels,
+                  getParamHelper(ParamNames::Low_Mid_XO_Frequency),
+                  "Hz");
+    addLabelPairs(midHighCrossoverSlider->labels,
+                  getParamHelper(ParamNames::Mid_High_XO_Frequency),
+                  "Hz");
+    addLabelPairs(outputGainSlider->labels,
+                  getParamHelper(ParamNames::Gain_Output),
+                  "dB");
+    
+    addAndMakeVisible(*inputGainSlider);
+    addAndMakeVisible(*lowMidCrossoverSlider);
+    addAndMakeVisible(*midHighCrossoverSlider);
+    addAndMakeVisible(*outputGainSlider);
 }
 
 
@@ -263,17 +328,25 @@ void GlobalControls::paint(juce::Graphics& g)
 
 void GlobalControls::resized()
 {
-    auto bounds = getLocalBounds();
+    auto bounds = getLocalBounds().reduced(5);
     using namespace juce;
     
     FlexBox flexBox;
     flexBox.flexDirection = FlexBox::Direction::row;
     flexBox.flexWrap = FlexBox::Wrap::noWrap;
     
-    flexBox.items.add(FlexItem(inputGainSlider).withFlex(1.f));
-    flexBox.items.add(FlexItem(lowMidCrossoverSlider).withFlex(1.f));
-    flexBox.items.add(FlexItem(midHighCrossoverSlider).withFlex(1.f));
-    flexBox.items.add(FlexItem(outputGainSlider).withFlex(1.f));
+    auto spacer = FlexItem().withWidth(4);
+    auto endCap = FlexItem().withWidth(6);
+    
+    flexBox.items.add(endCap);
+    flexBox.items.add(FlexItem(*inputGainSlider).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(*lowMidCrossoverSlider).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(*midHighCrossoverSlider).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(*outputGainSlider).withFlex(1.f));
+    flexBox.items.add(endCap);
     
     flexBox.performLayout(bounds);
 }

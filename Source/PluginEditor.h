@@ -2,7 +2,8 @@
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin editor.
-
+    This code has been referenced and adapted from Schiermeyer (2021a; 2021b).
+ 
   ==============================================================================
 */
 
@@ -99,7 +100,12 @@ struct RotarySlider : juce::Slider
     {}
 };
 
-template<typename Attachment, typename APVTS, typename PluginParameters, typename ParamNames, typename SliderType>
+template<
+    typename Attachment,
+    typename APVTS,
+    typename PluginParameters,
+    typename ParamNames,
+    typename SliderType>
 void makeAttachment(std::unique_ptr<Attachment>& attachment,
                     APVTS& apvts,
                     const PluginParameters& parameters,
@@ -111,6 +117,33 @@ void makeAttachment(std::unique_ptr<Attachment>& attachment,
                                               slider);
 }
 
+template<
+    typename APVTS,
+    typename PluginParameters,
+    typename ParamNames>
+juce::RangedAudioParameter& getParameter(APVTS& apvts, const PluginParameters& params, const ParamNames& name)
+{
+    auto param = apvts.getParameter(params.at(name));
+    jassert( param != nullptr );
+    
+    return *param;
+}
+
+juce::String getValString(const juce::RangedAudioParameter& param,
+                          bool getLow,
+                          juce::String suffix);
+
+template<
+    typename Labels,
+    typename ParamType,
+    typename SuffixType>
+void addLabelPairs(Labels& labels, const ParamType& param, const SuffixType& suffix)
+{
+    labels.clear();
+    labels.add({0.f, getValString(param, true, suffix)});
+    labels.add({1.f, getValString(param, false, suffix)});
+}
+
 struct GlobalControls : juce::Component
 {
     GlobalControls(juce::AudioProcessorValueTreeState& apvts);
@@ -120,7 +153,8 @@ struct GlobalControls : juce::Component
     void resized() override;
     
 private:
-    RotarySlider inputGainSlider, lowMidCrossoverSlider, midHighCrossoverSlider, outputGainSlider;
+    using RotarySliderWL = RotarySliderWithLabels;
+    std::unique_ptr<RotarySliderWL> inputGainSlider, lowMidCrossoverSlider, midHighCrossoverSlider, outputGainSlider;
     
     using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     std::unique_ptr<Attachment> lowMidCrossoverSliderAttachment,
