@@ -63,8 +63,8 @@ private:
     // access the processor object that created it.
     One_MBCompAudioProcessor& audioProcessor;
     
-    Placeholder controlBar, analyser, globalControls, bandControls;
-//    GlobalControls globalControls;
+    Placeholder controlBar, analyser, /*globalControls*/ bandControls;
+    GlobalControls globalControls;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessorEditor)
 };

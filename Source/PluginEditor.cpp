@@ -16,7 +16,22 @@ Placeholder::Placeholder()
     customColour = juce::Colour(r.nextInt(255), r.nextInt(255), r.nextInt(255));
 }
 //==============================================================================
-
+void GlobalControls::paint(juce::Graphics& g)
+{
+    using namespace juce;
+    auto bounds = getLocalBounds();
+    g.setColour(Colours::grey);
+    g.fillAll();
+    
+    auto localBounds = bounds;
+    
+    bounds.reduce(3,3);
+    g.setColour(Colours::black);
+    g.fillRoundedRectangle(bounds.toFloat(), 3);
+    
+    g.drawRect(localBounds);
+    
+}
 
 One_MBCompAudioProcessorEditor::One_MBCompAudioProcessorEditor (One_MBCompAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
