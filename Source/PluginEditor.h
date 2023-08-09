@@ -68,7 +68,7 @@ struct RotarySliderWithLabels : juce::Slider
     
     void paint(juce::Graphics& g) override;
     juce::Rectangle<int> getSliderBounds() const;
-    int getTextHeight() const { return 14; }
+    static int getTextHeight() { return 14; }
     juce::String getDisplayString() const;
     
 private:
@@ -147,20 +147,33 @@ void addLabelPairs(Labels& labels, const ParamType& param, const SuffixType& suf
 
 struct CompressorBandControls : juce::Component
 {
-    CompressorBandControls();
+    CompressorBandControls(juce::AudioProcessorValueTreeState& apvts);
     void resized() override;
+    void paint(juce::Graphics& g) override;
 private:
-    RotarySlider atkSlider1, atkSlider2, atkSlider3, relSlider1, relSlider2, relSlider3, thresSlider1, thresSlider2, thresSlider3, ratiSlider1, ratiSlider2, ratiSlider3;
+    using RotarySliderWL2 = RotarySliderWithLabels;
+    std::unique_ptr<RotarySliderWL2> atkSlider1, atkSlider2, atkSlider3, relSlider1, relSlider2, relSlider3, thresSlider1, thresSlider2, thresSlider3, ratiSlider1, ratiSlider2, ratiSlider3;
+    
+    using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    std::unique_ptr<Attachment> atkSlider1_Attachment,
+                                atkSlider2_Attachment,
+                                atkSlider3_Attachment,
+                                relSlider1_Attachment,
+                                relSlider2_Attachment,
+                                relSlider3_Attachment,
+                                thresSlider1_Attachment,
+                                thresSlider2_Attachment,
+                                thresSlider3_Attachment,
+                                ratiSlider1_Attachment,
+                                ratiSlider2_Attachment,
+                                ratiSlider3_Attachment;
 };
 
 struct GlobalControls : juce::Component
 {
     GlobalControls(juce::AudioProcessorValueTreeState& apvts);
-    
     void paint(juce::Graphics& g) override;
-    
     void resized() override;
-    
 private:
     using RotarySliderWL = RotarySliderWithLabels;
     std::unique_ptr<RotarySliderWL> inputGainSlider, lowMidCrossoverSlider, midHighCrossoverSlider, outputGainSlider;
@@ -192,7 +205,7 @@ private:
     
     Placeholder controlBar, analyser /*globalControls*/ /*bandControls*/;
     GlobalControls globalControls { audioProcessor.apvts };
-    CompressorBandControls bandControls;
+    CompressorBandControls bandControls { audioProcessor.apvts };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessorEditor)
 };

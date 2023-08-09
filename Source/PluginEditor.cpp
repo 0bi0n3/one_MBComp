@@ -263,73 +263,148 @@ Placeholder::Placeholder()
 }
 
 //==============================================================================
-CompressorBandControls::CompressorBandControls()
+CompressorBandControls::CompressorBandControls(juce::AudioProcessorValueTreeState& apvts)
 {
-    addAndMakeVisible(atkSlider1);
-    addAndMakeVisible(atkSlider2);
-    addAndMakeVisible(atkSlider3);
+    using namespace PluginParameters;
+    const auto& parameters = GetParameters();
     
-    addAndMakeVisible(relSlider1);
-    addAndMakeVisible(relSlider2);
-    addAndMakeVisible(relSlider3);
+    auto getParamHelper = [&parameters, &apvts](const auto& name) -> auto&
+    {
+        return getParameter(apvts, parameters, name);
+    };
     
-    addAndMakeVisible(thresSlider1);
-    addAndMakeVisible(thresSlider2);
-    addAndMakeVisible(thresSlider3);
+    // Create and assign parameters
+    atkSlider1 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Attack_LB),"ms", "Att-LB");
+    relSlider1 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Release_LB),"ms", "Rel-LB");
+    thresSlider1 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Threshold_LB),"dB", "Thr-LB");
+    ratiSlider1 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Ratio_LB),"Amt", "Rat-LB");
     
-    addAndMakeVisible(ratiSlider1);
-    addAndMakeVisible(ratiSlider2);
-    addAndMakeVisible(ratiSlider3);
+    atkSlider2 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Attack_MB),"ms", "Att-MB");
+    relSlider2 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Release_MB),"ms", "Rel-MB");
+    thresSlider2 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Threshold_MB),"dB", "Thr-MB");
+    ratiSlider2 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Ratio_MB),"Amt", "Rat-MB");
+    
+    atkSlider3 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Attack_HB),"ms", "Att-HB");
+    relSlider3 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Release_HB),"ms", "Rel-HB");
+    thresSlider3 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Threshold_HB),"dB", "Thr-HB");
+    ratiSlider3 = std::make_unique<RotarySliderWL2>(getParamHelper(ParamNames::Ratio_HB),"Amt", "Rat-HB");
+    
+    auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment, const auto& name, auto& slider)
+    {
+        makeAttachment(attachment, apvts, parameters, name, slider);
+    };
+    
+    makeAttachmentHelper(atkSlider1_Attachment, ParamNames::Attack_LB, *atkSlider1);
+    makeAttachmentHelper(relSlider1_Attachment, ParamNames::Release_LB, *relSlider1);
+    makeAttachmentHelper(thresSlider1_Attachment, ParamNames::Threshold_LB, *thresSlider1);
+    makeAttachmentHelper(ratiSlider1_Attachment, ParamNames::Ratio_LB, *ratiSlider1);
+    
+    makeAttachmentHelper(atkSlider2_Attachment, ParamNames::Attack_MB, *atkSlider2);
+    makeAttachmentHelper(relSlider2_Attachment, ParamNames::Release_MB, *relSlider2);
+    makeAttachmentHelper(thresSlider2_Attachment, ParamNames::Threshold_MB, *thresSlider2);
+    makeAttachmentHelper(ratiSlider2_Attachment, ParamNames::Ratio_MB, *ratiSlider2);
+    
+    makeAttachmentHelper(atkSlider3_Attachment, ParamNames::Attack_HB, *atkSlider3);
+    makeAttachmentHelper(relSlider3_Attachment, ParamNames::Release_HB, *relSlider3);
+    makeAttachmentHelper(thresSlider3_Attachment, ParamNames::Threshold_HB, *thresSlider3);
+    makeAttachmentHelper(ratiSlider3_Attachment, ParamNames::Ratio_HB, *ratiSlider3);
+    
+    addLabelPairs(atkSlider1->labels, getParamHelper(ParamNames::Attack_LB), "ms");
+    addLabelPairs(relSlider1->labels, getParamHelper(ParamNames::Release_LB), "ms");
+    addLabelPairs(thresSlider1->labels, getParamHelper(ParamNames::Threshold_LB), "dB");
+    addLabelPairs(ratiSlider1->labels, getParamHelper(ParamNames::Ratio_LB), "Amt");
+    
+    addLabelPairs(atkSlider2->labels, getParamHelper(ParamNames::Attack_MB), "ms");
+    addLabelPairs(relSlider2->labels, getParamHelper(ParamNames::Release_MB), "ms");
+    addLabelPairs(thresSlider2->labels, getParamHelper(ParamNames::Threshold_MB), "dB");
+    addLabelPairs(ratiSlider2->labels, getParamHelper(ParamNames::Ratio_MB), "Amt");
+    
+    addLabelPairs(atkSlider3->labels, getParamHelper(ParamNames::Attack_HB), "ms");
+    addLabelPairs(relSlider3->labels, getParamHelper(ParamNames::Release_HB), "ms");
+    addLabelPairs(thresSlider3->labels, getParamHelper(ParamNames::Threshold_HB), "dB");
+    addLabelPairs(ratiSlider3->labels, getParamHelper(ParamNames::Ratio_HB), "Amt");
+    
+    addAndMakeVisible(*atkSlider1);
+    addAndMakeVisible(*relSlider1);
+    addAndMakeVisible(*thresSlider1);
+    addAndMakeVisible(*ratiSlider1);
+    
+    addAndMakeVisible(*atkSlider2);
+    addAndMakeVisible(*relSlider2);
+    addAndMakeVisible(*thresSlider2);
+    addAndMakeVisible(*ratiSlider2);
+    
+    addAndMakeVisible(*atkSlider3);
+    addAndMakeVisible(*relSlider3);
+    addAndMakeVisible(*thresSlider3);
+    addAndMakeVisible(*ratiSlider3);
+    
 }
 
 void CompressorBandControls::resized()
 {
     auto bounds = getLocalBounds().reduced(5);
-        using namespace juce;
+    using namespace juce;
 
-        // Individual Control FlexBoxes
-        FlexBox controlFlex1, controlFlex2, controlFlex3;
+    // Main FlexBox to contain the Control FlexBoxes
+    FlexBox mainFlex;
+    mainFlex.flexDirection = FlexBox::Direction::column;  // Each group in a new line
+    mainFlex.justifyContent = FlexBox::JustifyContent::center;
 
-        // Configure them as rows because each control of a group is in one row.
-        controlFlex1.flexDirection = FlexBox::Direction::row;
-        controlFlex2.flexDirection = FlexBox::Direction::row;
-        controlFlex3.flexDirection = FlexBox::Direction::row;
+    // Individual Control FlexBoxes (for better structuring)
+    FlexBox controlFlex1, controlFlex2, controlFlex3;
 
-        controlFlex1.items.addArray({
-            FlexItem(atkSlider1).withFlex(1),
-            FlexItem(relSlider1).withFlex(1),
-            FlexItem(thresSlider1).withFlex(1),
-            FlexItem(ratiSlider1).withFlex(1)
+    // Configure as rows
+    controlFlex1.flexDirection = FlexBox::Direction::row;
+    controlFlex1.items.addArray({
+        FlexItem(*atkSlider1).withFlex(1),
+        FlexItem(*relSlider1).withFlex(1),
+        FlexItem(*thresSlider1).withFlex(1),
+        FlexItem(*ratiSlider1).withFlex(1)
         });
-
-        controlFlex2.items.addArray({
-            FlexItem(atkSlider2).withFlex(1),
-            FlexItem(relSlider2).withFlex(1),
-            FlexItem(thresSlider2).withFlex(1),
-            FlexItem(ratiSlider2).withFlex(1)
+    
+    controlFlex2.flexDirection = FlexBox::Direction::row;
+    controlFlex2.items.addArray({
+        FlexItem(*atkSlider2).withFlex(1),
+        FlexItem(*relSlider2).withFlex(1),
+        FlexItem(*thresSlider2).withFlex(1),
+        FlexItem(*ratiSlider2).withFlex(1)
         });
-
-        controlFlex3.items.addArray({
-            FlexItem(atkSlider3).withFlex(1),
-            FlexItem(relSlider3).withFlex(1),
-            FlexItem(thresSlider3).withFlex(1),
-            FlexItem(ratiSlider3).withFlex(1)
+    
+    controlFlex3.flexDirection = FlexBox::Direction::row;
+    controlFlex3.items.addArray({
+        FlexItem(*atkSlider3).withFlex(1),
+        FlexItem(*relSlider3).withFlex(1),
+        FlexItem(*thresSlider3).withFlex(1),
+        FlexItem(*ratiSlider3).withFlex(1)
         });
+    
+    mainFlex.items.addArray({
+        FlexItem(controlFlex1).withFlex(1),
+        FlexItem(controlFlex2).withFlex(1),
+        FlexItem(controlFlex3).withFlex(1)
+    });
 
-        // Main FlexBox to contain the Control FlexBoxes
-        FlexBox mainFlex;
-        mainFlex.flexDirection = FlexBox::Direction::column;  // Each group in a new line
-        mainFlex.justifyContent = FlexBox::JustifyContent::center;
-
-        mainFlex.items.addArray({
-            FlexItem(controlFlex1).withFlex(1),
-            FlexItem(controlFlex2).withFlex(1),
-            FlexItem(controlFlex3).withFlex(1)
-        });
-
-        // Perform layout within the component's bounds
-        mainFlex.performLayout(bounds);
+    // Perform layout within the component's bounds
+    mainFlex.performLayout(bounds);
 }
+
+void CompressorBandControls::paint(juce::Graphics& g)
+{
+    using namespace juce;
+    auto bounds = getLocalBounds();
+    g.setColour(Colours::grey);
+    g.fillAll();
+    
+    auto localBounds = bounds;
+    
+    bounds.reduce(3,3);
+    g.setColour(Colours::black);
+    g.fillRoundedRectangle(bounds.toFloat(), 3);
+    
+    g.drawRect(localBounds);
+}
+
 
 //==============================================================================
 GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
@@ -434,8 +509,8 @@ void GlobalControls::resized()
     flexBox.performLayout(bounds);
 }
 
-One_MBCompAudioProcessorEditor::One_MBCompAudioProcessorEditor (One_MBCompAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+One_MBCompAudioProcessorEditor::One_MBCompAudioProcessorEditor (One_MBCompAudioProcessor& processor)
+    : AudioProcessorEditor (&processor), audioProcessor (processor)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
