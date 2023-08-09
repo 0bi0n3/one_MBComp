@@ -99,9 +99,21 @@ struct RotarySlider : juce::Slider
     {}
 };
 
+template<typename Attachment, typename APVTS, typename PluginParameters, typename ParamNames, typename SliderType>
+void makeAttachment(std::unique_ptr<Attachment>& attachment,
+                    APVTS& apvts,
+                    const PluginParameters& parameters,
+                    const ParamNames& name,
+                    SliderType& slider)
+{
+    attachment = std::make_unique<Attachment>(apvts,
+                                              parameters.at(name),
+                                              slider);
+}
+
 struct GlobalControls : juce::Component
 {
-    GlobalControls();
+    GlobalControls(juce::AudioProcessorValueTreeState& apvts);
     
     void paint(juce::Graphics& g) override;
     
@@ -109,6 +121,12 @@ struct GlobalControls : juce::Component
     
 private:
     RotarySlider inputGainSlider, lowMidCrossoverSlider, midHighCrossoverSlider, outputGainSlider;
+    
+    using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    std::unique_ptr<Attachment> lowMidCrossoverSliderAttachment,
+                                midHighCrossoverSliderAttachment,
+                                inputGainSliderAttachment,
+                                outputGainSliderAttachment;
     
 };
 
@@ -130,7 +148,7 @@ private:
     One_MBCompAudioProcessor& audioProcessor;
     
     Placeholder controlBar, analyser, /*globalControls*/ bandControls;
-    GlobalControls globalControls;
+    GlobalControls globalControls { audioProcessor.apvts };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (One_MBCompAudioProcessorEditor)
 };

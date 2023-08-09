@@ -220,8 +220,23 @@ Placeholder::Placeholder()
     customColour = juce::Colour(r.nextInt(255), r.nextInt(255), r.nextInt(255));
 }
 //==============================================================================
-GlobalControls::GlobalControls()
+GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
 {
+    using namespace PluginParameters;
+    const auto& parameters = GetParameters();
+    
+    auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment,
+                                                      const auto& name,
+                                                      auto& slider)
+    {
+        makeAttachment(attachment, apvts, parameters, name, slider);
+    };
+    
+    makeAttachmentHelper(inputGainSliderAttachment, ParamNames::Gain_Input, inputGainSlider);
+    makeAttachmentHelper(lowMidCrossoverSliderAttachment, ParamNames::Low_Mid_XO_Frequency, lowMidCrossoverSlider);
+    makeAttachmentHelper(midHighCrossoverSliderAttachment, ParamNames::Mid_High_XO_Frequency, midHighCrossoverSlider);
+    makeAttachmentHelper(outputGainSliderAttachment, ParamNames::Gain_Output, outputGainSlider);
+    
     addAndMakeVisible(inputGainSlider);
     addAndMakeVisible(lowMidCrossoverSlider);
     addAndMakeVisible(midHighCrossoverSlider);
