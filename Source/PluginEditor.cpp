@@ -152,6 +152,11 @@ void RotarySliderWithLabels::paint(juce::Graphics &g)
     
     auto sliderBounds = getSliderBounds();
     
+    auto bounds = getLocalBounds();
+    
+    g.setColour(Colours::darkkhaki);
+    g.drawFittedText(getName(), bounds.removeFromTop(getTextHeight() + 2), Justification::centredTop, 1);
+    
     getLookAndFeel().drawRotarySlider(g,
                                       sliderBounds.getX(),
                                       sliderBounds.getY(),
@@ -195,14 +200,17 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 {
     auto bounds = getLocalBounds();
     
+    bounds.removeFromTop(getTextHeight());
+    
     auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
     
-    size -= getTextHeight() * 2;
+    size -= getTextHeight();
     
     juce::Rectangle<int> r;
     r.setSize(size, size);
-    r.setCentre(bounds.getCentreX(), 0);
-    r.setY(2);
+    r.setCentre(bounds.getCentreX(), bounds.getCentreY());
+//    r.setY(2);
+    r.setY(bounds.getY());
     
     return r;
 }
@@ -264,10 +272,15 @@ GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
         return getParameter(apvts, parameters, name);
     };
     
-    inputGainSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Gain_Input),"dB");
-    lowMidCrossoverSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Low_Mid_XO_Frequency),"Hz");
-    midHighCrossoverSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Mid_High_XO_Frequency),"Hz");
-    outputGainSlider = std::make_unique<RotarySliderWL>(getParamHelper(ParamNames::Gain_Output),"dB");
+    auto& gainInputParameter = getParamHelper(ParamNames::Gain_Input);
+    auto& lowMidParameter = getParamHelper(ParamNames::Low_Mid_XO_Frequency);
+    auto& midHighParameter = getParamHelper(ParamNames::Mid_High_XO_Frequency);
+    auto& gainOutputParameter = getParamHelper(ParamNames::Gain_Output);
+    
+    inputGainSlider = std::make_unique<RotarySliderWL>(gainInputParameter,"dB", "Input Gain");
+    lowMidCrossoverSlider = std::make_unique<RotarySliderWL>(lowMidParameter,"Hz", "Low-Mid Range");
+    midHighCrossoverSlider = std::make_unique<RotarySliderWL>(midHighParameter,"Hz", "Mid-Hi Range");
+    outputGainSlider = std::make_unique<RotarySliderWL>(gainOutputParameter,"dB", "Output Gain");
     
     auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment,
                                                       const auto& name,
@@ -290,16 +303,16 @@ GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
                          *outputGainSlider);
     
     addLabelPairs(inputGainSlider->labels,
-                  getParamHelper(ParamNames::Gain_Input),
+                  gainInputParameter,
                   "dB");
     addLabelPairs(lowMidCrossoverSlider->labels,
-                  getParamHelper(ParamNames::Low_Mid_XO_Frequency),
+                  lowMidParameter,
                   "Hz");
     addLabelPairs(midHighCrossoverSlider->labels,
-                  getParamHelper(ParamNames::Mid_High_XO_Frequency),
+                  midHighParameter,
                   "Hz");
     addLabelPairs(outputGainSlider->labels,
-                  getParamHelper(ParamNames::Gain_Output),
+                  gainOutputParameter,
                   "dB");
     
     addAndMakeVisible(*inputGainSlider);
