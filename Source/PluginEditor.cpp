@@ -261,6 +261,72 @@ Placeholder::Placeholder()
     juce::Random r;
     customColour = juce::Colour(r.nextInt(255), r.nextInt(255), r.nextInt(255));
 }
+
+//==============================================================================
+CompressorBandControls::CompressorBandControls()
+{
+    addAndMakeVisible(atkSlider1);
+    addAndMakeVisible(atkSlider2);
+    addAndMakeVisible(atkSlider3);
+    
+    addAndMakeVisible(relSlider1);
+    addAndMakeVisible(relSlider2);
+    addAndMakeVisible(relSlider3);
+    
+    addAndMakeVisible(thresSlider1);
+    addAndMakeVisible(thresSlider2);
+    addAndMakeVisible(thresSlider3);
+    
+    addAndMakeVisible(ratiSlider1);
+    addAndMakeVisible(ratiSlider2);
+    addAndMakeVisible(ratiSlider3);
+}
+
+void CompressorBandControls::resized()
+{
+    auto bounds = getLocalBounds().reduced(5);
+    using namespace juce;
+    
+    FlexBox flexBox;
+    flexBox.flexDirection = FlexBox::Direction::row;
+    flexBox.flexWrap = FlexBox::Wrap::noWrap;
+    
+    auto spacer = FlexItem().withWidth(4);
+    auto endCap = FlexItem().withWidth(6);
+    
+    flexBox.items.add(endCap);
+    
+    flexBox.items.add(FlexItem(atkSlider1).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(relSlider1).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(thresSlider1).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(ratiSlider1).withFlex(1.f));
+    flexBox.items.add(spacer);
+
+    flexBox.items.add(FlexItem(atkSlider2).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(relSlider2).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(thresSlider2).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(ratiSlider2).withFlex(1.f));
+    flexBox.items.add(spacer);
+
+    flexBox.items.add(FlexItem(atkSlider3).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(relSlider3).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(thresSlider3).withFlex(1.f));
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(ratiSlider3).withFlex(1.f));
+       
+    flexBox.items.add(endCap);
+    
+    flexBox.performLayout(bounds);
+}
+
 //==============================================================================
 GlobalControls::GlobalControls(juce::AudioProcessorValueTreeState& apvts)
 {
