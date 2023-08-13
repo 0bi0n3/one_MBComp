@@ -181,10 +181,6 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     LP2.prepare(spec);
     HP2.prepare(spec);
     
-//    invAP1.prepare(spec);
-//    invAP2.prepare(spec);
-//    invAPBuffer.setSize(spec.numChannels, samplesPerBlock);
-    
     inputGain.prepare(spec);
     outputGain.prepare(spec);
     
@@ -296,10 +292,7 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     {
         compressors[i].process(filterBuffers[i]);
     }
-    
-//    auto numberSamples = buffer.getNumSamples();
-//    auto numberChannels = buffer.getNumChannels();
-    
+        
     // Clear the buffer
     buffer.clear();
     

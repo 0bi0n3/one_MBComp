@@ -17,7 +17,7 @@ struct ControlBar : juce::Component
     ControlBar(juce::AudioProcessorValueTreeState& apvts);
     void resized() override;
     void paint(juce::Graphics& g) override;
-    
+
 private:
     using Buttons = juce::ToggleButton;
     
@@ -360,6 +360,23 @@ void makeAttachment(std::unique_ptr<Attachment>& attachment,
     attachment = std::make_unique<Attachment>(apvts,
                                               parameters.at(name),
                                               slider);
+}
+
+template<
+    typename Attachment,
+    typename APVTS,
+    typename PluginParameters,
+    typename ParamNames,
+    typename ButtonType>
+void makeBtnAttachment(std::unique_ptr<Attachment>& attachment,
+                    APVTS& apvts,
+                    const PluginParameters& parameters,
+                    const ParamNames& name,
+                    ButtonType& toggle)
+{
+    attachment = std::make_unique<Attachment>(apvts,
+                                              parameters.at(name),
+                                              toggle);
 }
 
 template<

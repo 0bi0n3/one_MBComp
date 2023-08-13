@@ -330,7 +330,12 @@ ControlBar::ControlBar(juce::AudioProcessorValueTreeState& apvts)
 {
     using namespace PluginParameters;
     const auto& parameters = GetParameters();
-       
+    
+    auto getParamHelper = [&parameters, &apvts](const auto& name) -> auto&
+    {
+        return getParameter(apvts, parameters, name);
+    };
+    
     // Use only the button label to initialize the ToggleButton.
     bypassButton1 = std::make_unique<Buttons>("X");
     soloButton1 = std::make_unique<Buttons>("S");
@@ -347,11 +352,13 @@ ControlBar::ControlBar(juce::AudioProcessorValueTreeState& apvts)
     muteButton3 = std::make_unique<Buttons>("M");
     titleLabel3.setText("HB", juce::NotificationType::dontSendNotification);
 
+    
     auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment, const auto& name, auto& button)
     {
-        makeAttachment(attachment, apvts, parameters, name, button);
+        makeBtnAttachment(attachment, apvts, parameters, name, button);
     };
         
+    
     makeAttachmentHelper(bypassButtonAttachment1, ParamNames::Bypass_LB, *bypassButton1);
     makeAttachmentHelper(soloButtonAttachment1, ParamNames::Solo_LB, *soloButton1);
     makeAttachmentHelper(muteButtonAttachment1, ParamNames::Mute_LB, *muteButton1);
