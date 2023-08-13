@@ -326,6 +326,93 @@ juce::Rectangle<int> SpectrumAnalyser::getAnalysisArea()
   ==============================================================================
 */
 
+ControlBar::ControlBar(juce::AudioProcessorValueTreeState& apvts)
+    : apvts(apvts)
+{
+    // Initialize buttons and title labels for each group
+    lowGroup.bypassButton.setButtonText("X");
+    lowGroup.soloButton.setButtonText("S");
+    lowGroup.muteButton.setButtonText("M");
+    lowGroup.titleLabel.setText("LB", juce::NotificationType::dontSendNotification);
+    
+    midGroup.bypassButton.setButtonText("X");
+    midGroup.soloButton.setButtonText("S");
+    midGroup.muteButton.setButtonText("M");
+    midGroup.titleLabel.setText("MB", juce::NotificationType::dontSendNotification);
+    
+    highGroup.bypassButton.setButtonText("X");
+    highGroup.soloButton.setButtonText("S");
+    highGroup.muteButton.setButtonText("M");
+    highGroup.titleLabel.setText("HB", juce::NotificationType::dontSendNotification);
+    
+    // Add buttons and title labels to the component
+    addAndMakeVisible(lowGroup.bypassButton);
+    addAndMakeVisible(lowGroup.soloButton);
+    addAndMakeVisible(lowGroup.muteButton);
+    addAndMakeVisible(lowGroup.titleLabel);
+    
+    addAndMakeVisible(midGroup.bypassButton);
+    addAndMakeVisible(midGroup.soloButton);
+    addAndMakeVisible(midGroup.muteButton);
+    addAndMakeVisible(midGroup.titleLabel);
+    
+    addAndMakeVisible(highGroup.bypassButton);
+    addAndMakeVisible(highGroup.soloButton);
+    addAndMakeVisible(highGroup.muteButton);
+    addAndMakeVisible(highGroup.titleLabel);
+}
+
+void ControlBar::resized()
+{
+    auto bounds = getLocalBounds();
+    auto buttonWidth = bounds.getWidth() / 9;
+    auto buttonHeight = 20;  // Adjust this as needed
+    auto titleHeight = 18;   // Adjust this as needed
+
+    // Position the low group
+    lowGroup.titleLabel.setBounds(bounds.removeFromTop(titleHeight));
+    lowGroup.bypassButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    lowGroup.soloButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    lowGroup.muteButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    
+    // Reset bounds for mid group
+    bounds = getLocalBounds();
+    auto midColumn = bounds.removeFromRight(335);
+    // Position the mid group
+    midGroup.titleLabel.setBounds(midColumn.removeFromTop(titleHeight));
+    midGroup.bypassButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    midGroup.soloButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    midGroup.muteButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+
+    // Reset bounds for high group
+    bounds = getLocalBounds();
+    auto rightColumn = bounds.removeFromRight(175);  // Adjust this as needed
+    // Position the high group
+    highGroup.titleLabel.setBounds(rightColumn.removeFromTop(titleHeight));
+    highGroup.bypassButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    highGroup.soloButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    highGroup.muteButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+}
+
+
+
+void ControlBar::paint(juce::Graphics& g)
+{
+    using namespace juce;
+    auto bounds = getLocalBounds();
+    g.setColour(Colours::grey);
+    g.fillAll();
+    
+    auto localBounds = bounds;
+    
+    bounds.reduce(3,3);
+    g.setColour(Colours::black);
+    g.fillRoundedRectangle(bounds.toFloat(), 3);
+    
+    g.drawRect(localBounds);
+}
+
+//==============================================================================
 
 template<typename T>
 bool addKilohertz(T& value)

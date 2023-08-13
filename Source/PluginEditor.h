@@ -9,28 +9,31 @@
 
 #pragma once
 
-/*
- GUI design steps:
- 1) Global controls, gain and crossover.
- 2) Mid/main and controls(attack, release, threshold, ratio).
- 3) Solo, mute and bypass buttons.
- 4) Band selection.
- 5) Band selection = same as solo, mute and bypass button states.
- 6) Customise buttons and sliders.
- 7) Spectrum analyser.
- 8) Meter overlay on bands.
- 9) meter response to DSP.
- 10) Crossover sections on analyser.
- 11) Showing gain reduction on bands.
- 12) Global bypass button.
- */
-
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
 struct ControlBar : juce::Component
 {
+    ControlBar(juce::AudioProcessorValueTreeState& apvts);
+    void resized() override;
+    void paint(juce::Graphics& g) override;
     
+private:
+    juce::AudioProcessorValueTreeState& apvts;
+    
+    // Button groups
+    struct ButtonGroup
+    {
+        juce::ToggleButton bypassButton, soloButton, muteButton;
+        juce::Label titleLabel;
+    };
+    
+    ButtonGroup lowGroup, midGroup, highGroup;
+
+    using BtnAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    std::unique_ptr<BtnAttachment> bypassButtonAttachment1, soloButtonAttachment1, muteButtonAttachment1,
+                                   bypassButtonAttachment2, soloButtonAttachment2, muteButtonAttachment2,
+                                   bypassButtonAttachment3, soloButtonAttachment3, muteButtonAttachment3;
 };
 
 /*
@@ -444,7 +447,8 @@ private:
     // access the processor object that created it.
     One_MBCompAudioProcessor& audioProcessor;
     
-    Placeholder controlBar /*analyser*/ /*globalControls*/ /*bandControls*/;
+    ControlBar controlBar { audioProcessor.apvts };
+    
     GlobalControls globalControls { audioProcessor.apvts };
     CompressorBandControls bandControls { audioProcessor.apvts };
     SpectrumAnalyser specAnalyser { audioProcessor };
