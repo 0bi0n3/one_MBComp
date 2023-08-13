@@ -327,39 +327,59 @@ juce::Rectangle<int> SpectrumAnalyser::getAnalysisArea()
 */
 
 ControlBar::ControlBar(juce::AudioProcessorValueTreeState& apvts)
-    : apvts(apvts)
 {
-    // Initialize buttons and title labels for each group
-    lowGroup.bypassButton.setButtonText("X");
-    lowGroup.soloButton.setButtonText("S");
-    lowGroup.muteButton.setButtonText("M");
-    lowGroup.titleLabel.setText("LB", juce::NotificationType::dontSendNotification);
+    using namespace PluginParameters;
+    const auto& parameters = GetParameters();
+       
+    // Use only the button label to initialize the ToggleButton.
+    bypassButton1 = std::make_unique<Buttons>("X");
+    soloButton1 = std::make_unique<Buttons>("S");
+    muteButton1 = std::make_unique<Buttons>("M");
+    titleLabel1.setText("LB", juce::NotificationType::dontSendNotification);
+        
+    bypassButton2 = std::make_unique<Buttons>("X");
+    soloButton2 = std::make_unique<Buttons>("S");
+    muteButton2 = std::make_unique<Buttons>("M");
+    titleLabel2.setText("MB", juce::NotificationType::dontSendNotification);
+
+    bypassButton3 = std::make_unique<Buttons>("X");
+    soloButton3 = std::make_unique<Buttons>("S");
+    muteButton3 = std::make_unique<Buttons>("M");
+    titleLabel3.setText("HB", juce::NotificationType::dontSendNotification);
+
+    auto makeAttachmentHelper = [&parameters, &apvts](auto& attachment, const auto& name, auto& button)
+    {
+        makeAttachment(attachment, apvts, parameters, name, button);
+    };
+        
+    makeAttachmentHelper(bypassButtonAttachment1, ParamNames::Bypass_LB, *bypassButton1);
+    makeAttachmentHelper(soloButtonAttachment1, ParamNames::Solo_LB, *soloButton1);
+    makeAttachmentHelper(muteButtonAttachment1, ParamNames::Mute_LB, *muteButton1);
     
-    midGroup.bypassButton.setButtonText("X");
-    midGroup.soloButton.setButtonText("S");
-    midGroup.muteButton.setButtonText("M");
-    midGroup.titleLabel.setText("MB", juce::NotificationType::dontSendNotification);
+    makeAttachmentHelper(bypassButtonAttachment2, ParamNames::Bypass_MB, *bypassButton2);
+    makeAttachmentHelper(soloButtonAttachment2, ParamNames::Solo_MB, *soloButton2);
+    makeAttachmentHelper(muteButtonAttachment2, ParamNames::Mute_MB, *muteButton2);
     
-    highGroup.bypassButton.setButtonText("X");
-    highGroup.soloButton.setButtonText("S");
-    highGroup.muteButton.setButtonText("M");
-    highGroup.titleLabel.setText("HB", juce::NotificationType::dontSendNotification);
+    makeAttachmentHelper(bypassButtonAttachment3, ParamNames::Bypass_HB, *bypassButton3);
+    makeAttachmentHelper(soloButtonAttachment3, ParamNames::Solo_HB, *soloButton3);
+    makeAttachmentHelper(muteButtonAttachment3, ParamNames::Mute_HB, *muteButton3);
+    
     
     // Add buttons and title labels to the component
-    addAndMakeVisible(lowGroup.bypassButton);
-    addAndMakeVisible(lowGroup.soloButton);
-    addAndMakeVisible(lowGroup.muteButton);
-    addAndMakeVisible(lowGroup.titleLabel);
+    addAndMakeVisible(*bypassButton1);
+    addAndMakeVisible(*soloButton1);
+    addAndMakeVisible(*muteButton1);
+    addAndMakeVisible(titleLabel1);
     
-    addAndMakeVisible(midGroup.bypassButton);
-    addAndMakeVisible(midGroup.soloButton);
-    addAndMakeVisible(midGroup.muteButton);
-    addAndMakeVisible(midGroup.titleLabel);
+    addAndMakeVisible(*bypassButton2);
+    addAndMakeVisible(*soloButton2);
+    addAndMakeVisible(*muteButton2);
+    addAndMakeVisible(titleLabel2);
     
-    addAndMakeVisible(highGroup.bypassButton);
-    addAndMakeVisible(highGroup.soloButton);
-    addAndMakeVisible(highGroup.muteButton);
-    addAndMakeVisible(highGroup.titleLabel);
+    addAndMakeVisible(*bypassButton3);
+    addAndMakeVisible(*soloButton3);
+    addAndMakeVisible(*muteButton3);
+    addAndMakeVisible(titleLabel3);
 }
 
 void ControlBar::resized()
@@ -370,30 +390,29 @@ void ControlBar::resized()
     auto titleHeight = 18;   // Adjust this as needed
 
     // Position the low group
-    lowGroup.titleLabel.setBounds(bounds.removeFromTop(titleHeight));
-    lowGroup.bypassButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    lowGroup.soloButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    lowGroup.muteButton.setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    titleLabel1.setBounds(bounds.removeFromTop(titleHeight));
+    bypassButton1->setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    soloButton1->setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    muteButton1->setBounds(bounds.removeFromLeft(buttonWidth).withHeight(buttonHeight));
     
     // Reset bounds for mid group
     bounds = getLocalBounds();
     auto midColumn = bounds.removeFromRight(335);
     // Position the mid group
-    midGroup.titleLabel.setBounds(midColumn.removeFromTop(titleHeight));
-    midGroup.bypassButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    midGroup.soloButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    midGroup.muteButton.setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    titleLabel2.setBounds(midColumn.removeFromTop(titleHeight));
+    bypassButton2->setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    soloButton2->setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    muteButton2->setBounds(midColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
 
     // Reset bounds for high group
     bounds = getLocalBounds();
     auto rightColumn = bounds.removeFromRight(175);  // Adjust this as needed
     // Position the high group
-    highGroup.titleLabel.setBounds(rightColumn.removeFromTop(titleHeight));
-    highGroup.bypassButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    highGroup.soloButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
-    highGroup.muteButton.setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    titleLabel3.setBounds(rightColumn.removeFromTop(titleHeight));
+    bypassButton3->setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    soloButton3->setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
+    muteButton3->setBounds(rightColumn.removeFromLeft(buttonWidth).withHeight(buttonHeight));
 }
-
 
 
 void ControlBar::paint(juce::Graphics& g)

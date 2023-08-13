@@ -19,22 +19,22 @@ struct ControlBar : juce::Component
     void paint(juce::Graphics& g) override;
     
 private:
-    juce::AudioProcessorValueTreeState& apvts;
+    using Buttons = juce::ToggleButton;
     
-    // Button groups
-    struct ButtonGroup
-    {
-        juce::ToggleButton bypassButton, soloButton, muteButton;
-        juce::Label titleLabel;
-    };
+    std::unique_ptr<Buttons>    bypassButton1, soloButton1, muteButton1,
+                                bypassButton2, soloButton2, muteButton2,
+                                bypassButton3, soloButton3, muteButton3;
+        
+    juce::Label titleLabel1, titleLabel2, titleLabel3;
     
-    ButtonGroup lowGroup, midGroup, highGroup;
+    using Attachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    std::unique_ptr<Attachment>
+        bypassButtonAttachment1, soloButtonAttachment1, muteButtonAttachment1,
+        bypassButtonAttachment2, soloButtonAttachment2, muteButtonAttachment2,
+        bypassButtonAttachment3, soloButtonAttachment3, muteButtonAttachment3;
 
-    using BtnAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    std::unique_ptr<BtnAttachment> bypassButtonAttachment1, soloButtonAttachment1, muteButtonAttachment1,
-                                   bypassButtonAttachment2, soloButtonAttachment2, muteButtonAttachment2,
-                                   bypassButtonAttachment3, soloButtonAttachment3, muteButtonAttachment3;
 };
+
 
 /*
   ==============================================================================
@@ -396,9 +396,11 @@ struct CompressorBandControls : juce::Component
     void paint(juce::Graphics& g) override;
 private:
     using RotarySliderWL2 = RotarySliderWithLabels;
+    
     std::unique_ptr<RotarySliderWL2> atkSlider1, atkSlider2, atkSlider3, relSlider1, relSlider2, relSlider3, thresSlider1, thresSlider2, thresSlider3, ratiSlider1, ratiSlider2, ratiSlider3;
     
     using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    
     std::unique_ptr<Attachment> atkSlider1_Attachment,
                                 atkSlider2_Attachment,
                                 atkSlider3_Attachment,
