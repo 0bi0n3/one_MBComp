@@ -191,6 +191,9 @@ void One_MBCompAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     {
         buffer.setSize(spec.numChannels, samplesPerBlock);
     }
+    
+    leftChannelFifo.prepare(samplesPerBlock);
+    rightChannelFifo.prepare(samplesPerBlock);
 }
 
 void One_MBCompAudioProcessor::releaseResources()
@@ -248,6 +251,9 @@ void One_MBCompAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     // Set the input and output gain values in decibels
     inputGain.setGainDecibels( inputGainParameter->get() );
     outputGain.setGainDecibels( outputGainParameter->get() );
+    
+    leftChannelFifo.update(buffer);
+    rightChannelFifo.update(buffer);
     
     // Apply the gain to the buffer
     applyGain(buffer, inputGain);
