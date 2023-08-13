@@ -10,34 +10,81 @@
 #include <cmath>
 #include <vector>
 #include <stdexcept>
+#include <JuceHeader.h>
 
 #include "butterworthFilter.h"
-    
 
-void Butterworth::setFilterParameters(double cutOffFrequency, double qualityFactor)
+// Constructor definition
+ButterFilter::ButterFilter(double sampleRate, FilterType type) :    filterType(type),
+                                                                    sampleRate(sampleRate),
+                                                                    previousSamples1(2, 0),
+                                                                    previousSamples2(2, 0)
+{}
+
+void ButterFilter::prepare(const juce::dsp::ProcessSpec& spec)
 {
-    // Validate filter parameters
-    if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
-    {
-        throw std::invalid_argument("Invalid filter parameters.");
-    }
+    sampleRate = spec.sampleRate;
+    
+    // Resize the vectors to handle the number of channels provided
+    previousSamples1.resize(spec.numChannels, 0);
+    previousSamples2.resize(spec.numChannels, 0);
+    
+    // Reset the vectors to 0
+    std::fill(previousSamples1.begin(), previousSamples1.end(), 0.0);
+    std::fill(previousSamples2.begin(), previousSamples2.end(), 0.0);
+}
+
+void ButterFilter::setFilterParameters(double cutOffFrequency, double qualityFactor, FilterType filterType)
+{
+//    // Validate filter parameters
+//    if (cutOffFrequency <= 0 || cutOffFrequency >= 1 || qualityFactor <= 0)
+//    {
+//        throw std::invalid_argument("Invalid filter parameters.");
+//    }
 
     this->cutOffFrequency = cutOffFrequency;
     this->qualityFactor = qualityFactor;
+    this->filterType = filterType;
 
-    // Calculate intermediate variables for Butterworth filter
-    double intermediateVariableK = std::tan(M_PI * cutOffFrequency);
-    double normalizationFactor = 1 / (1 + intermediateVariableK / qualityFactor + intermediateVariableK * intermediateVariableK);
-    
-    // Calculate coefficients for Butterworth filter
-    coefficientA0 = intermediateVariableK * intermediateVariableK * normalizationFactor;
-    coefficientA1 = 2 * coefficientA0;
-    coefficientA2 = coefficientA0;
-    coefficientB1 = 2 * (intermediateVariableK * intermediateVariableK - 1) * normalizationFactor;
-    coefficientB2 = (1 - intermediateVariableK / qualityFactor + intermediateVariableK * intermediateVariableK) * normalizationFactor;
+    // Calculate w0 and alpha based on cutOffFrequency and qualityFactor
+        double w0 = 2 * M_PI * cutOffFrequency / sampleRate;
+        double alpha = std::sin(w0) / (2 * qualityFactor);
+
+        // Calculate coefficients based on filter type
+        if (filterType == FilterType::lowpass)
+        {
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 - std::cos(w0)) / 2 / a0;
+            coefficientA1 = (1 - std::cos(w0)) / a0;
+            coefficientA2 = coefficientA0;
+            coefficientB1 = -2 * std::cos(w0) / a0;
+            coefficientB2 = (1 - alpha) / a0;
+        }
+        else if (filterType == FilterType::highpass)
+        {
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 + std::cos(w0)) / 2 / a0;
+            coefficientA1 = -(1 + std::cos(w0)) / a0;
+            coefficientA2 = coefficientA0;
+            coefficientB1 = -2 * std::cos(w0) / a0;
+            coefficientB2 = (1 - alpha) / a0;
+        }
+        else if (filterType == FilterType::allpass)
+        {
+            double a0 = 1 + alpha;
+            coefficientA0 = (1 - alpha) / a0;
+            coefficientA1 = -2 * std::cos(w0) / a0;
+            coefficientA2 = (1 + alpha) / a0;
+            coefficientB1 = coefficientA1; // same as a1
+            coefficientB2 = coefficientA0; // same as a0
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid filter type.");
+        }
 }
 
-double Butterworth::processFilter(double inputSample, int channelNumber)
+double ButterFilter::processFilter(double inputSample, int channelNumber)
 {
     // Validate channel index
     if (channelNumber < 0 || channelNumber >= previousSamples1.size())
@@ -50,36 +97,111 @@ double Butterworth::processFilter(double inputSample, int channelNumber)
     
     // Update previous samples
     previousSamples2[channelNumber] = previousSamples1[channelNumber];
+    previousSamples1[channelNumber] = inputSample;
     previousSamples1[channelNumber] = outputSample;
-    
+
     // Return filtered sample
     return outputSample;
 }
 
-// ======================================================================
 
-void LinkwitzRiley::setCrossoverFrequency(double crossoverFrequency)
+void ButterFilter::updateSampleRate(double newSampleRate)
 {
-    // Validate crossover frequency
-    if (crossoverFrequency <= 0 || crossoverFrequency >= 1) {
-        throw std::invalid_argument("Invalid crossover frequency.");
+    sampleRate = newSampleRate;
+    // Recalculate the filter parameters with the new sample rate
+    setFilterParameters(cutOffFrequency, qualityFactor, filterType);
+}
+
+void ButterFilter::process(const juce::dsp::ProcessContextReplacing<float>& context)
+{
+    auto& inputBlock = context.getInputBlock();
+    auto& outputBlock = context.getOutputBlock();
+    const int numChannels = inputBlock.getNumChannels();
+    const int numSamples = inputBlock.getNumSamples();
+
+    // You'd need to loop over all channels and samples
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            // Process the samples and fill the outputBlock
+            outputBlock.getChannelPointer(channel)[i] = processFilter(inputBlock.getChannelPointer(channel)[i], channel);
+        }
     }
+}
+
+// ======================================================================
+// Constructor definition
+LinkwitzRFilter::LinkwitzRFilter(double sampleRate) :   lowPassFilter(sampleRate,
+                                                        FilterType::lowpass),
+                                                        highPassFilter(sampleRate,
+                                                        FilterType::highpass),
+                                                        allPassFilter(sampleRate,
+                                                        FilterType::allpass)
+{}
+
+void LinkwitzRFilter::prepare(const juce::dsp::ProcessSpec& spec)
+{
+    // Forward the preparation call to the inner filters
+    lowPassFilter.prepare(spec);
+    highPassFilter.prepare(spec);
+    allPassFilter.prepare(spec);
+}
+
+void LinkwitzRFilter::setType(FilterType newType)
+{
+    filterType = newType;
+}
+
+void LinkwitzRFilter::setCrossoverFrequency(double crossoverFrequency)
+{
+//    // Validate crossover frequency
+//    if (crossoverFrequency <= 0 || crossoverFrequency >= 1) {
+//        throw std::invalid_argument("Invalid crossover frequency.");
+//    }
 
     // Set crossover frequency for low pass and high pass filter
-    lowPassFilter.setFilterParameters(crossoverFrequency, 0.5);
-    highPassFilter.setFilterParameters(crossoverFrequency, 0.5);
+    lowPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::lowpass);
+    highPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::highpass);
+    allPassFilter.setFilterParameters(crossoverFrequency, 0.707, FilterType::allpass);
 }
 
-double LinkwitzRiley::processLowPassFilter(double inputSample, int channelNumber)
+double LinkwitzRFilter::processFilter(double inputSample, int channelNumber)
 {
-    // Process the input sample with the low pass filter twice
-    return lowPassFilter.processFilter(lowPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    // Check for filter type and process accordingly
+    if (filterType == FilterType::lowpass)
+    {
+        // Process the input sample with the low pass filter twice
+        return lowPassFilter.processFilter(lowPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    }
+    else if (filterType == FilterType::highpass)
+    {
+        // Process the input sample with the high pass filter twice
+        return highPassFilter.processFilter(highPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    }
+    else // allpass
+    {
+        return allPassFilter.processFilter(allPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    }
+    return 0.0; // Default return value
 }
 
-double LinkwitzRiley::processHighPassFilter(double inputSample, int channelNumber)
+void LinkwitzRFilter::process(const juce::dsp::ProcessContextReplacing<float>& context)
 {
-    // Process the input sample with the high pass filter twice
-    return highPassFilter.processFilter(highPassFilter.processFilter(inputSample, channelNumber), channelNumber);
+    auto& inputBlock = context.getInputBlock();
+    auto& outputBlock = context.getOutputBlock();
+    const int numChannels = inputBlock.getNumChannels();
+    const int numSamples = inputBlock.getNumSamples();
+
+    // You'd need to loop over all channels and samples
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            // Process the samples and fill the outputBlock
+            outputBlock.getChannelPointer(channel)[i] = processFilter(inputBlock.getChannelPointer(channel)[i], channel);
+        }
+    }
 }
 
 

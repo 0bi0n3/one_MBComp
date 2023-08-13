@@ -5,6 +5,14 @@
               companyName="Oberon Day-West" companyEmail="21501990@student.uwl.ac.uk">
   <MAINGROUP id="UumtOq" name="one_MBComp">
     <GROUP id="{03A6A455-DB8A-F062-7D32-741DD5F28DDE}" name="Source">
+      <FILE id="EScM26" name="basicCompressor.cpp" compile="1" resource="0"
+            file="Source/basicCompressor.cpp"/>
+      <FILE id="sWFHpJ" name="BasicCompressor.h" compile="0" resource="0"
+            file="Source/BasicCompressor.h"/>
+      <FILE id="GIsRca" name="butterworthFilter.cpp" compile="1" resource="0"
+            file="Source/butterworthFilter.cpp"/>
+      <FILE id="edXI5W" name="butterworthFilter.h" compile="0" resource="0"
+            file="Source/butterworthFilter.h"/>
       <FILE id="U9zMBO" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="w7Ouqx" name="PluginProcessor.h" compile="0" resource="0"
