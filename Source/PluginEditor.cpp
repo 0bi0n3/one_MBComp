@@ -2,7 +2,7 @@
   ==============================================================================
 
     This file contains the basic framework code for a JUCE plugin editor.
-    This code has been referenced and adapted from Schiermeyer (2021a; 2021b).
+    This code has been referenced and adapted from Hodge (2019), Tarr (2020a; 2020b) and Schiermeyer (2021a; 2021b).
 
   ==============================================================================
 */
@@ -431,7 +431,7 @@ void ControlBar::paint(juce::Graphics& g)
     g.drawRect(localBounds);
 }
 
-//==============================================================================
+//======================referenced and adapted from Schiermeyer (2021a; 2021b)========================================================
 
 template<typename T>
 bool addKilohertz(T& value)
@@ -677,7 +677,7 @@ juce::String RotarySliderWithLabels::getDisplayString() const
     return str;
 }
 
-//==============================================================================
+//===============================end of ref===============================================
 
 Placeholder::Placeholder()
 {
