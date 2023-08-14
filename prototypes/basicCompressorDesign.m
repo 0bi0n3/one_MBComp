@@ -57,8 +57,22 @@ end
 t = [0:N-1] * Ts; t = t(:);
 
 subplot(3,1,1);
-plot(t,x); title('Step Input'); axis([0 3 -0.1 1.1]);
+plot(t,x); 
+title('Step Input');
+xlabel('Time (s)');
+ylabel('Amplitude');
+axis([0 3 -0.1 1.1]);
+
 subplot(3,1,2);
-plot(t,y); title('Compressor output'); axis([0 3 -0.1 1.1]);
+plot(t,y); 
+title('Compressor output'); 
+xlabel('Time (s)');
+ylabel('Amplitude');
+axis([0 3 -0.1 1.1]);
+
 subplot(3,1,3);
-plot(t,lin_A); title('Gain Reduction'); axis([0 3 -0.1 1.1]);
+plot(t,lin_A); 
+title('Gain Reduction (dB)');
+xlabel('Time (s)');
+ylabel('Gain Reduction (dB)');
+axis([0 3 -0.1 1.1]);
