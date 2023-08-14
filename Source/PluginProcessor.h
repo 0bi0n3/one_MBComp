@@ -19,7 +19,7 @@
 /*
   ==============================================================================
     **************************************************************************
-    NOTE TO READER: This following section of code was explicitly copied from
+    NOTE TO READER: This following section of code was explicitly referenced from
     Schiermeyer (2021a; 2021b) to demonstrate the spectrum in the plugin. This
     code block has not be originally created by the author. The end of the block
     will be clearly stated for ease of reference to the reader.
